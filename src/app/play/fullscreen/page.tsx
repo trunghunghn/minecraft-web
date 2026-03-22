@@ -11,7 +11,7 @@ export default function FullscreenPlay() {
     const [isMobile, setIsMobile] = useState(false);
 
     useEffect(() => {
-        setMounted(true);
+        const mountTimer = setTimeout(() => setMounted(true), 0);
 
         const checkMobile = () => {
             const userAgent = navigator.userAgent || navigator.vendor || (window as any).opera;
@@ -27,6 +27,7 @@ export default function FullscreenPlay() {
             setGameLaunched(true);
         }, 2000);
         return () => {
+            clearTimeout(mountTimer);
             clearTimeout(timer);
             window.removeEventListener("resize", checkMobile);
         };

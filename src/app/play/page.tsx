@@ -17,16 +17,19 @@ export default function PlayPage() {
     const [showSettings, setShowSettings] = useState(false);
 
     useEffect(() => {
-        setMounted(true);
+        const timer = setTimeout(() => setMounted(true), 0);
         const checkMobile = () => {
-            const userAgent = navigator.userAgent || navigator.vendor || (window as any).opera;
+            const userAgent = navigator.userAgent || navigator.vendor || (window as unknown as { opera: string }).opera;
             const mobileRegex = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i;
             const isTouchDevice = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
             setIsMobile((mobileRegex.test(userAgent) || window.innerWidth <= 1024) && isTouchDevice);
         };
         checkMobile();
         window.addEventListener("resize", checkMobile);
-        return () => window.removeEventListener("resize", checkMobile);
+        return () => {
+            clearTimeout(timer);
+            window.removeEventListener("resize", checkMobile);
+        };
     }, []);
 
     const handleKeyDown = (key: string) => { };
@@ -193,7 +196,7 @@ export default function PlayPage() {
                                     <div className="max-w-3xl mx-auto space-y-8">
                                         <div className="border-l-4 border-blue-600 pl-6 space-y-2">
                                             <h2 className="text-3xl font-bold text-white uppercase tracking-tighter">Hướng dẫn chơi cùng bạn bè</h2>
-                                            <p className="text-sm text-gray-500 italic font-mono">Tính năng "Open to LAN" hỗ trợ chơi qua mã Relay Join Code</p>
+                                            <p className="text-sm text-gray-500 italic font-mono">Tính năng &quot;Open to LAN&quot; hỗ trợ chơi qua mã Relay Join Code</p>
                                         </div>
 
                                         <div className="grid grid-cols-1 md:grid-cols-2 gap-8">

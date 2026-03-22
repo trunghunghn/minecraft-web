@@ -27,8 +27,8 @@ export async function signUp(formData: FormData) {
             },
         });
         return { success: true };
-    } catch (error: any) {
-        if (error.code === 'P2002') {
+    } catch (error: unknown) {
+        if (error && typeof error === 'object' && 'code' in error && error.code === 'P2002') {
             return { error: "Email này đã được đăng ký" };
         }
         return { error: "Có lỗi xảy ra khi tạo tài khoản" };

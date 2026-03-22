@@ -21,6 +21,11 @@ export default function MobileControls({ onKeyDown, onKeyUp, onOpenSettings, top
     const lookStartPos = useRef<{ x: number, y: number } | null>(null);
 
     useEffect(() => {
+        // Initialize cursor position on mount
+        if (cursorRef.current) {
+            cursorRef.current.style.transform = `translate3d(${mousePos.current.x}px, ${mousePos.current.y}px, 0)`;
+        }
+
         const findTarget = () => {
             const iframe = document.getElementById('game-iframe') as HTMLIFrameElement || document.querySelector('iframe');
             if (iframe) {
@@ -304,7 +309,6 @@ export default function MobileControls({ onKeyDown, onKeyUp, onOpenSettings, top
                 <div
                     ref={cursorRef}
                     className="absolute z-[60] w-6 h-6 pointer-events-none top-0 left-0"
-                    style={{ transform: `translate3d(${mousePos.current.x}px, ${mousePos.current.y}px, 0)` }}
                 >
                     <svg viewBox="0 0 24 24" fill="white" stroke="black" strokeWidth="1">
                         <path d="M5.5,2 L5.5,22 L10,17.5 L14,22 L17,20.5 L13,16 L19,16 L5.5,2 Z" />

@@ -128,7 +128,7 @@ export default async function DashboardPage() {
                             <div className="mt-6 p-4 bg-yellow-900/10 border border-yellow-900/20 rounded-lg">
                                 <p className="text-[10px] text-yellow-500 font-bold mb-1 uppercase tracking-tighter">Hệ thống gợi ý</p>
                                 <p className="text-[11px] text-gray-400 leading-relaxed">
-                                    Thiết lập "Authentication" đã hoàn tất. Website của bạn giờ đây đã có thể bảo mật các bài viết và script cá nhân!
+                                    Thiết lập &quot;Authentication&quot; đã hoàn tất. Website của bạn giờ đây đã có thể bảo mật các bài viết và script cá nhân!
                                 </p>
                                 <Link href="/blog/create" className="text-[11px] text-yellow-500 mt-2 font-bold flex items-center gap-1">
                                     BẮT ĐẦU NGAY <ChevronRight size={12} />
