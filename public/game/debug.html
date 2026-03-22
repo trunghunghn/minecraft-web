@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html style="width:100%;height:100%;background-color:black;">
+
+<head>
+    <meta charset="UTF-8">
+    <title>Eaglercraft Debug</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            background: #121212;
+            color: #0f0;
+            font-family: monospace;
+        }
+
+        #debug-panel {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            z-index: 99999;
+            background: rgba(0, 0, 0, 0.95);
+            color: #0f0;
+            font-family: monospace;
+            font-size: 11px;
+            padding: 8px;
+            max-height: 40vh;
+            overflow-y: auto;
+            border-bottom: 2px solid #0f0;
+        }
+
+        #debug-panel h3 {
+            color: #fff;
+            margin-bottom: 6px;
+        }
+
+        .err {
+            color: #f44;
+        }
+
+        .warn {
+            color: #ff0;
+        }
+
+        .info {
+            color: #0ff;
+        }
+
+        .log {
+            color: #0f0;
+        }
+    </style>
+</head>
+
+<body id="game_frame">
+    <div id="debug-panel">
+        <h3>🔍 Eaglercraft Debug Console</h3>
+        <div id="debug-log"></div>
+    </div>
+
+    <script>
+        // Intercept ALL console output BEFORE game loads
+        const debugLog = document.getElementById('debug-log');
+        let logCount = 0;
+        const MAX_LOGS = 200;
+
+        function addLog(type, args) {
+            if (logCount >= MAX_LOGS) return;
+            logCount++;
+            const div = document.createElement('div');
+            div.className = type;
+            const msg = Array.from(args).map(a => {
+                if (typeof a === 'object') try { return JSON.stringify(a).substring(0, 200); } catch (e) { return String(a); }
+                return String(a);
+            }).join(' ');
+            div.textContent = `[${type.toUpperCase()}] ${msg}`;
+            debugLog.appendChild(div);
+            debugLog.scrollTop = debugLog.scrollHeight;
+        }
+
+        // Override console methods
+        const origLog = console.log;
+        const origError = console.error;
+        const origWarn = console.warn;
+        const origInfo = console.info;
+
+        console.log = function () { addLog('log', arguments); origLog.apply(console, arguments); };
+        console.error = function () { addLog('err', arguments); origError.apply(console, arguments); };
+        console.warn = function () { addLog('warn', arguments); origWarn.apply(console, arguments); };
+        console.info = function () { addLog('info', arguments); origInfo.apply(console, arguments); };
+
+        // Catch unhandled errors
+        window.onerror = function (msg, src, line, col, err) {
+            addLog('err', [`UNCAUGHT: ${msg} at ${src}:${line}:${col}`]);
+            return false;
+        };
+
+        // Catch promise rejections
+        window.onunhandledrejection = function (e) {
+            addLog('err', [`PROMISE REJECT: ${e.reason}`]);
+        };
+
+        // Log environment info
+        addLog('info', [`UserAgent: ${navigator.userAgent}`]);
+        addLog('info', [`Screen: ${screen.width}x${screen.height}, Window: ${window.innerWidth}x${window.innerHeight}`]);
+        addLog('info', [`crossOriginIsolated: ${window.crossOriginIsolated}`]);
+        addLog('info', [`SharedArrayBuffer: ${typeof SharedArrayBuffer !== 'undefined'}`]);
+
+        // Check WebGL
+        const testCanvas = document.createElement('canvas');
+        const gl1 = testCanvas.getContext('webgl');
+        const gl2 = testCanvas.getContext('webgl2');
+        addLog('info', [`WebGL1: ${!!gl1}, WebGL2: ${!!gl2}`]);
+        if (gl1) addLog('info', [`GL Renderer: ${gl1.getParameter(gl1.RENDERER)}`]);
+        if (gl2) addLog('info', [`GL2 Renderer: ${gl2.getParameter(gl2.RENDERER)}`]);
+
+        addLog('info', ['--- Loading game via script tag (optimized) ---']);
+    </script>
+
+    <!-- Set eaglercraftXOpts TRƯỚC khi load game -->
+    <script type="text/javascript">
+        "use strict";
+        window.eaglercraftXOpts = {
+            container: "game_frame",
+            worldsDB: "worlds"
+        };
+        addLog('log', ['eaglercraftXOpts set:', JSON.stringify(window.eaglercraftXOpts)]);
+    </script>
+
+    <!-- Load game.js trực tiếp - NHANH HƠN RẤT NHIỀU so với fetch+inject -->
+    <script>
+        addLog('log', ['Loading game.js via script tag...']);
+
+        // Monitor for canvas creation
+        const observer = new MutationObserver(function (mutations) {
+            mutations.forEach(function (mutation) {
+                mutation.addedNodes.forEach(function (node) {
+                    if (node.tagName === 'CANVAS') {
+                        addLog('info', [`CANVAS CREATED! ${node.width}x${node.height}`]);
+                    }
+                    addLog('log', [`DOM node added: ${node.tagName || node.nodeName} id=${node.id || ''}`]);
+                });
+            });
+        });
+        observer.observe(document.body, { childList: true, subtree: true });
+
+        // Check status periodically
+        let checkCount = 0;
+        const statusCheck = setInterval(() => {
+            checkCount++;
+            const canvases = document.querySelectorAll('canvas');
+            addLog('log', [`Status check #${checkCount}: canvas=${canvases.length}, running=${!!window.__isEaglerX188Running}, children=${document.body.children.length}`]);
+            if (checkCount >= 30) clearInterval(statusCheck);
+        }, 2000);
+    </script>
+
+    <!-- Load game trực tiếp bằng script src -->
+    <script type="text/javascript" src="/game/1.12.2/game.js"></script>
+</body>
+
+</html>

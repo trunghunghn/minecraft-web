@@ -1,0 +1,80 @@
+@import "tailwindcss";
+
+:root {
+  --mc-green: #5ea135;
+  --mc-brown: #795548;
+  --mc-dirt: #3d2b24;
+  --mc-stone: #7d7d7d;
+  --mc-grass: #4caf50;
+  --mc-sky: #78a7ff;
+}
+
+@font-face {
+  font-family: 'Minecraft';
+  src: url('https://fonts.cdnfonts.com/s/14875/Minecraft.woff') format('woff');
+}
+
+body {
+  background: #1e1e1e;
+  color: #ffffff;
+  font-family: 'Minecraft', 'Inter', sans-serif;
+  image-rendering: pixelated;
+}
+
+.mc-button {
+  position: relative;
+  background: #bebebe;
+  border-top: 2px solid #ffffff;
+  border-left: 2px solid #ffffff;
+  border-bottom: 2px solid #555555;
+  border-right: 2px solid #555555;
+  padding: 8px 16px;
+  color: #3f3f3f;
+  text-shadow: 1px 1px #ffffff;
+  transition: all 0.1s;
+  cursor: pointer;
+}
+
+.mc-button:hover {
+  background: #d0d0d0;
+}
+
+.mc-button:active {
+  border-top: 2px solid #555555;
+  border-left: 2px solid #555555;
+  border-bottom: 2px solid #ffffff;
+  border-right: 2px solid #ffffff;
+  padding-top: 10px;
+  padding-bottom: 6px;
+}
+
+.mc-card {
+  background: rgba(0, 0, 0, 0.7);
+  border: 4px solid #3d2b24;
+  outline: 4px solid #000000;
+  box-shadow: inset 0 0 20px rgba(0, 0, 0, 0.5);
+}
+
+.mc-pixel-border {
+  border-image-source: url('data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAYAAAAGCAYAAADxfLzXAAAACXBIWXMAAAsTAAALEwEAmpwYAAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAAuSURBVBgZBcExAQAAAMKg9U9tDB8uIBAIBALBIBAIBIPBIBAIBAKBQCAQCAQCweAFX60EAnH7mY4AAAAASUVORK5CYII=');
+  border-image-slice: 2;
+  border-image-repeat: stretch;
+  border-width: 4px;
+}
+
+/* Custom scrollbar for templates */
+.custom-scrollbar::-webkit-scrollbar {
+  height: 6px;
+  width: 6px;
+}
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: rgba(0, 0, 0, 0.2);
+  border-radius: 4px;
+}
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 4px;
+}
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: rgba(84, 161, 53, 0.5); /* Thêm màu xanh Eaglercraft khi hover */
+}
