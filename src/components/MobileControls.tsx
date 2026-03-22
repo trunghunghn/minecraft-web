@@ -5,10 +5,61 @@ import { useState, useRef, useEffect } from "react";
 interface MobileControlsProps {
     onKeyDown: (key: string) => void;
     onKeyUp: (key: string) => void;
-    onOpenSettings: () => void;
+    onOpenSettings?: () => void;
     topOffset?: string;
     bottomOffset?: string;
 }
+
+interface BtnProps {
+    label: string;
+    code?: string;
+    className?: string;
+    onClick?: () => void;
+    style?: React.CSSProperties;
+    mousePos: React.RefObject<{ x: number, y: number }>;
+    dispatchMouseEvent: (type: 'mousedown' | 'mouseup' | 'click' | 'mousemove', x: number, y: number, button?: number) => void;
+    handlePress: (key: string) => void;
+    handleRelease: (key: string) => void;
+}
+
+const Btn = ({ label, code, className = "", onClick, style, mousePos, dispatchMouseEvent, handlePress, handleRelease }: BtnProps) => (
+    <button
+        style={style}
+        className={`bg-gray-500/40 border border-white/30 flex items-center justify-center text-white font-bold text-[11px] uppercase select-none pointer-events-auto active:bg-white/30 backdrop-blur-sm ${className}`}
+        onPointerDown={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            if (onClick) onClick();
+            else if (code) {
+                if (code === "BUTTON_ATTACK") dispatchMouseEvent('mousedown', mousePos.current!.x, mousePos.current!.y, 0);
+                else if (code === "BUTTON_PLACE") dispatchMouseEvent('mousedown', mousePos.current!.x, mousePos.current!.y, 2);
+                else handlePress(code);
+            }
+        }}
+        onPointerUp={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            if (code) {
+                if (code === "BUTTON_ATTACK") {
+                    dispatchMouseEvent('mouseup', mousePos.current!.x, mousePos.current!.y, 0);
+                    dispatchMouseEvent('click', mousePos.current!.x, mousePos.current!.y, 0);
+                }
+                else if (code === "BUTTON_PLACE") {
+                    dispatchMouseEvent('mouseup', mousePos.current!.x, mousePos.current!.y, 2);
+                    dispatchMouseEvent('click', mousePos.current!.x, mousePos.current!.y, 2);
+                }
+                else handleRelease(code);
+            }
+        }}
+        onPointerLeave={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            if (code) handleRelease(code);
+        }}
+    >
+        {label}
+    </button>
+);
 
 export default function MobileControls({ onKeyDown, onKeyUp, onOpenSettings, topOffset = "top-[60px]", bottomOffset = "bottom-2" }: MobileControlsProps) {
     const [isMouseMode, setIsMouseMode] = useState(false);
@@ -177,44 +228,6 @@ export default function MobileControls({ onKeyDown, onKeyUp, onOpenSettings, top
         target.dispatchEvent(mouseEvent);
     };
 
-    const Btn = ({ label, code, className = "", onClick, style }: { label: string, code?: string, className?: string, onClick?: () => void, style?: React.CSSProperties }) => (
-        <button
-            style={style}
-            className={`bg-gray-500/40 border border-white/30 flex items-center justify-center text-white font-bold text-[11px] uppercase select-none pointer-events-auto active:bg-white/30 backdrop-blur-sm ${className}`}
-            onPointerDown={(e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                if (onClick) onClick();
-                else if (code) {
-                    if (code === "BUTTON_ATTACK") dispatchMouseEvent('mousedown', mousePos.current.x, mousePos.current.y, 0);
-                    else if (code === "BUTTON_PLACE") dispatchMouseEvent('mousedown', mousePos.current.x, mousePos.current.y, 2);
-                    else handlePress(code);
-                }
-            }}
-            onPointerUp={(e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                if (code) {
-                    if (code === "BUTTON_ATTACK") {
-                        dispatchMouseEvent('mouseup', mousePos.current.x, mousePos.current.y, 0);
-                        dispatchMouseEvent('click', mousePos.current.x, mousePos.current.y, 0);
-                    }
-                    else if (code === "BUTTON_PLACE") {
-                        dispatchMouseEvent('mouseup', mousePos.current.x, mousePos.current.y, 2);
-                        dispatchMouseEvent('click', mousePos.current.x, mousePos.current.y, 2);
-                    }
-                    else handleRelease(code);
-                }
-            }}
-            onPointerLeave={(e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                if (code) handleRelease(code);
-            }}
-        >
-            {label}
-        </button>
-    );
 
     return (
         <div className="fixed inset-0 pointer-events-none z-50 overflow-hidden font-mono">
@@ -318,8 +331,8 @@ export default function MobileControls({ onKeyDown, onKeyUp, onOpenSettings, top
 
             {/* Top Bar */}
             <div className={`absolute ${topOffset} left-2 flex gap-1 pointer-events-none z-20`}>
-                <Btn label="DEBUG" code="F3" className="w-[70px] h-[30px]" />
-                <Btn label="CHAT" code="t" className="w-[70px] h-[30px]" />
+                <Btn label="DEBUG" code="F3" className="w-[70px] h-[30px]" mousePos={mousePos} dispatchMouseEvent={dispatchMouseEvent} handlePress={handlePress} handleRelease={handleRelease} />
+                <Btn label="CHAT" code="t" className="w-[70px] h-[30px]" mousePos={mousePos} dispatchMouseEvent={dispatchMouseEvent} handlePress={handlePress} handleRelease={handleRelease} />
                 <button
                     className="w-[70px] h-[30px] bg-gray-500/40 border border-white/30 flex items-center justify-center text-white font-bold text-[11px] uppercase pointer-events-auto active:bg-white/30 backdrop-blur-sm"
                     onClick={() => {
@@ -331,29 +344,30 @@ export default function MobileControls({ onKeyDown, onKeyUp, onOpenSettings, top
                 >
                     CHAT+
                 </button>
-                <Btn label="ESC" code="Escape" className="w-[70px] h-[30px] !bg-red-500/40" />
-                <Btn label="TAB" code="Tab" className="w-[70px] h-[30px]" />
-                <Btn label="3RD" code="F5" className="w-[70px] h-[30px]" />
+                <Btn label="ESC" code="Escape" className="w-[70px] h-[30px] !bg-red-500/40" mousePos={mousePos} dispatchMouseEvent={dispatchMouseEvent} handlePress={handlePress} handleRelease={handleRelease} />
+                <Btn label="TAB" code="Tab" className="w-[70px] h-[30px]" mousePos={mousePos} dispatchMouseEvent={dispatchMouseEvent} handlePress={handlePress} handleRelease={handleRelease} />
+                <Btn label="3RD" code="F5" className="w-[70px] h-[30px]" mousePos={mousePos} dispatchMouseEvent={dispatchMouseEvent} handlePress={handlePress} handleRelease={handleRelease} />
                 <Btn
                     label="MOUSE"
                     className={`w-[70px] h-[30px] ml-4 ${isMouseMode ? 'bg-blue-500/60' : ''}`}
                     onClick={() => setIsMouseMode(!isMouseMode)}
+                    mousePos={mousePos} dispatchMouseEvent={dispatchMouseEvent} handlePress={handlePress} handleRelease={handleRelease}
                 />
             </div>
 
             {/* Bottom Left 3x3 Grid */}
             <div className={`absolute ${bottomOffset} left-2 w-[186px] h-[186px] grid grid-cols-3 grid-rows-3 gap-[2px] pointer-events-none z-20`}>
-                <Btn label="PRI" code="BUTTON_ATTACK" />
-                <Btn label="▲" code="w" className="text-xl" />
-                <Btn label="SEC" code="BUTTON_PLACE" />
+                <Btn label="PRI" code="BUTTON_ATTACK" mousePos={mousePos} dispatchMouseEvent={dispatchMouseEvent} handlePress={handlePress} handleRelease={handleRelease} />
+                <Btn label="▲" code="w" className="text-xl" mousePos={mousePos} dispatchMouseEvent={dispatchMouseEvent} handlePress={handlePress} handleRelease={handleRelease} />
+                <Btn label="SEC" code="BUTTON_PLACE" mousePos={mousePos} dispatchMouseEvent={dispatchMouseEvent} handlePress={handlePress} handleRelease={handleRelease} />
 
-                <Btn label="◀" code="a" className="text-xl" />
-                <Btn label="◇" code="Shift" className="text-xl" />
-                <Btn label="▶" code="d" className="text-xl" />
+                <Btn label="◀" code="a" className="text-xl" mousePos={mousePos} dispatchMouseEvent={dispatchMouseEvent} handlePress={handlePress} handleRelease={handleRelease} />
+                <Btn label="◇" code="Shift" className="text-xl" mousePos={mousePos} dispatchMouseEvent={dispatchMouseEvent} handlePress={handlePress} handleRelease={handleRelease} />
+                <Btn label="▶" code="d" className="text-xl" mousePos={mousePos} dispatchMouseEvent={dispatchMouseEvent} handlePress={handlePress} handleRelease={handleRelease} />
 
-                <Btn label="GUI" code="F1" />
-                <Btn label="▼" code="s" className="text-xl" />
-                <Btn label="INV" code="e" />
+                <Btn label="GUI" code="F1" mousePos={mousePos} dispatchMouseEvent={dispatchMouseEvent} handlePress={handlePress} handleRelease={handleRelease} />
+                <Btn label="▼" code="s" className="text-xl" mousePos={mousePos} dispatchMouseEvent={dispatchMouseEvent} handlePress={handlePress} handleRelease={handleRelease} />
+                <Btn label="INV" code="e" mousePos={mousePos} dispatchMouseEvent={dispatchMouseEvent} handlePress={handlePress} handleRelease={handleRelease} />
             </div>
 
             {/* Bottom Right Special Buttons */}
@@ -362,6 +376,7 @@ export default function MobileControls({ onKeyDown, onKeyUp, onOpenSettings, top
                 code=" "
                 className={`absolute right-5 w-[60px] h-[60px] rounded-full !text-[12px] z-20`}
                 style={{ bottom: `calc(${bottomOffset.includes('[') ? bottomOffset.split('[')[1].split(']')[0] : '8px'} + 100px)` }}
+                mousePos={mousePos} dispatchMouseEvent={dispatchMouseEvent} handlePress={handlePress} handleRelease={handleRelease}
             />
         </div>
     );

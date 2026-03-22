@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import ScriptEditor from "@/components/ScriptEditor";
 import SettingsModal from "@/components/SettingsModal";
 import MobileControls from "@/components/MobileControls";
-import { Hammer, Settings, ArrowLeft, Maximize2, Play, ExternalLink } from "lucide-react";
+import { Hammer, Settings, ArrowLeft, Play, ExternalLink } from "lucide-react";
 import Link from "next/link";
 import { motion } from "framer-motion";
 

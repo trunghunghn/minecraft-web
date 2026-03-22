@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { ArrowLeft, Chrome, Mail, Lock } from "lucide-react"; // Added this line based on the instruction's "Code Edit" snippet
 import MobileControls from "@/components/MobileControls";
 import SettingsModal from "@/components/SettingsModal";
 
@@ -14,7 +15,7 @@ export default function FullscreenPlay() {
         const mountTimer = setTimeout(() => setMounted(true), 0);
 
         const checkMobile = () => {
-            const userAgent = navigator.userAgent || navigator.vendor || (window as any).opera;
+            const userAgent = navigator.userAgent || navigator.vendor || (window as unknown as { opera: string }).opera;
             const mobileRegex = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i;
             const isTouchDevice = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
             setIsMobile((mobileRegex.test(userAgent) || window.innerWidth <= 1024) && isTouchDevice);

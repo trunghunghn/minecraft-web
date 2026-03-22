@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Save, ArrowLeft, Image as ImageIcon, Eye, Send } from "lucide-react";
+import { ArrowLeft, Image as ImageIcon, Eye, Send } from "lucide-react";
 import Link from "next/link";
 
 export default function BlogEditor() {

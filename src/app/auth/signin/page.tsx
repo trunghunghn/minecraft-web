@@ -1,7 +1,7 @@
 "use client";
 
 import { signIn } from "next-auth/react";
-import { ArrowLeft, Github, Chrome, Mail, Lock, User } from "lucide-react";
+import { ArrowLeft, Chrome, Mail, Lock } from "lucide-react";
 import Link from "next/link";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
@@ -40,8 +40,8 @@ export default function SignInPage() {
       } else {
         router.push("/dashboard");
       }
-    } catch (err) {
-      setError("Có lỗi xảy ra khi đăng nhập");
+    } catch (error) {
+      setError("Đã có lỗi xảy ra. Vui lòng thử lại.");
     } finally {
       setLoading(false);
     }
