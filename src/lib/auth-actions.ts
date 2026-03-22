@@ -1,7 +1,7 @@
 "use server";
 
 import { prisma } from "@/lib/prisma";
-import { scryptSync, randomBytes } from "node:crypto";
+import { scryptSync, randomBytes } from "crypto";
 import { signIn } from "@/auth";
 
 export async function signUp(formData: FormData) {
