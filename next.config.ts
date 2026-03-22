@@ -25,4 +25,8 @@ const nextConfig: NextConfig = {
   },
 };
 
+
 export default nextConfig;
+
+// Trigger redeploy for Framework Preset change
+
