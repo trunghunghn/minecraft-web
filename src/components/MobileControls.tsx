@@ -174,7 +174,7 @@ export default function MobileControls({ onKeyDown, onKeyUp, onOpenSettings, top
             screenX: x,
             screenY: y,
             button: button,
-            buttons: (type === 'mousedown' || type === 'mousemove') ? (button === 0 ? 1 : button === 2 ? 2 : 4) : 0,
+            buttons: (type === 'mousedown') ? (button === 0 ? 1 : button === 2 ? 2 : 4) : 0,
             detail: type === 'click' ? 1 : 0,
         };
 
@@ -308,14 +308,18 @@ export default function MobileControls({ onKeyDown, onKeyUp, onOpenSettings, top
                             const dy = Math.abs(e.clientY - lookStartPos.current.y);
 
                             if (duration < 250 && dx < 10 && dy < 10) {
+                                // Cache the start position to avoid e.clientX getting lost in setTimeout closure
+                                const tapX = lookStartPos.current.x;
+                                const tapY = lookStartPos.current.y;
+
                                 // It's a tap, dispatch hover first to trigger button highlight
-                                dispatchMouseEvent('mousemove', e.clientX, e.clientY, 0);
+                                dispatchMouseEvent('mousemove', tapX, tapY, 0);
 
                                 // Wait 50ms for game GUI to register the hover before clicking
                                 setTimeout(() => {
-                                    dispatchMouseEvent('mousedown', e.clientX, e.clientY, 0);
-                                    dispatchMouseEvent('mouseup', e.clientX, e.clientY, 0);
-                                    dispatchMouseEvent('click', e.clientX, e.clientY, 0);
+                                    dispatchMouseEvent('mousedown', tapX, tapY, 0);
+                                    dispatchMouseEvent('mouseup', tapX, tapY, 0);
+                                    dispatchMouseEvent('click', tapX, tapY, 0);
                                 }, 50);
                             }
                         }
