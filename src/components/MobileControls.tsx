@@ -308,10 +308,12 @@ export default function MobileControls({ onKeyDown, onKeyUp, onOpenSettings, top
                             const dy = Math.abs(e.clientY - lookStartPos.current.y);
 
                             if (duration < 250 && dx < 10 && dy < 10) {
-                                // It's a tap, dispatch hover then click at current position
+                                // It's a tap, dispatch hover first to trigger button highlight
                                 dispatchMouseEvent('mousemove', e.clientX, e.clientY, 0);
-                                dispatchMouseEvent('mousedown', e.clientX, e.clientY, 0);
+
+                                // Wait 50ms for game GUI to register the hover before clicking
                                 setTimeout(() => {
+                                    dispatchMouseEvent('mousedown', e.clientX, e.clientY, 0);
                                     dispatchMouseEvent('mouseup', e.clientX, e.clientY, 0);
                                     dispatchMouseEvent('click', e.clientX, e.clientY, 0);
                                 }, 50);
