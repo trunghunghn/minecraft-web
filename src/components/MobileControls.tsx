@@ -151,32 +151,36 @@ export default function MobileControls({ onKeyDown, onKeyUp, onOpenSettings, top
 
     const dispatchMouseEvent = (type: string, x: number, y: number, button: number = 0) => {
         const target = targetRef.current || document.body;
-        const rect = target.getBoundingClientRect();
 
-        // Calculate coordinates relative to the target
-        const localX = x - rect.left;
-        const localY = y - rect.top;
+        let clientX = x;
+        let clientY = y;
+
+        const iframe = document.getElementById('game-iframe') as HTMLIFrameElement;
+        if (iframe) {
+            const iframeRect = iframe.getBoundingClientRect();
+            // If target is inside the iframe, adjust the client coordinates to be relative to the iframe
+            if (target.ownerDocument !== document) {
+                clientX = x - iframeRect.left;
+                clientY = y - iframeRect.top;
+            }
+        }
 
         const eventInit = {
             view: (target.ownerDocument?.defaultView || window) as Window & typeof globalThis,
             bubbles: true,
             cancelable: true,
-            clientX: x,
-            clientY: y,
+            clientX: clientX,
+            clientY: clientY,
             screenX: x,
             screenY: y,
             button: button,
             buttons: (type === 'mousedown' || type === 'mousemove') ? (button === 0 ? 1 : button === 2 ? 2 : 4) : 0,
             detail: type === 'click' ? 1 : 0,
-            offsetX: localX,
-            offsetY: localY
         };
 
-        // Dispatch MouseEvent
         const mouseEvent = new MouseEvent(type, eventInit);
         target.dispatchEvent(mouseEvent);
 
-        // For modern web games, PointerEvents are often more important
         const pointerTypeMap: Record<string, string> = {
             'mousedown': 'pointerdown',
             'mouseup': 'pointerup',
@@ -198,13 +202,18 @@ export default function MobileControls({ onKeyDown, onKeyUp, onOpenSettings, top
             target.dispatchEvent(pointerEvent);
         }
 
-        // Additional dispatch to iframe window directly if possible
-        if (target.tagName === 'IFRAME') {
-            const iframe = target as HTMLIFrameElement;
+        if (target.tagName === 'IFRAME' && iframe) {
             try {
                 if (iframe.contentWindow) {
-                    const iframeEvent = new MouseEvent(type, { ...eventInit, bubbles: true });
+                    const iframeClientX = x - iframe.getBoundingClientRect().left;
+                    const iframeClientY = y - iframe.getBoundingClientRect().top;
+                    const iframeEvent = new MouseEvent(type, { ...eventInit, clientX: iframeClientX, clientY: iframeClientY, bubbles: true });
                     iframe.contentWindow.dispatchEvent(iframeEvent);
+
+                    if (pType) {
+                        const pEvent = new PointerEvent(pType, { ...eventInit, clientX: iframeClientX, clientY: iframeClientY, bubbles: true });
+                        iframe.contentWindow.dispatchEvent(pEvent);
+                    }
                 }
             } catch (e) { }
         }
@@ -281,7 +290,7 @@ export default function MobileControls({ onKeyDown, onKeyUp, onOpenSettings, top
             {!isMouseMode && (
                 <div
                     className="absolute right-0 bottom-0 pointer-events-auto z-10"
-                    style={{ left: '50%', top: topPx, touchAction: 'none' }}
+                    style={{ left: 0, top: topPx, touchAction: 'none' }}
                     onPointerDown={(e) => {
                         // Prevent swipe-to-look starting on buttons (grid/jump)
                         const target = e.target as HTMLElement;
