@@ -88,8 +88,7 @@ export default function PlayPage() {
             <div className="flex-shrink-0 flex items-center justify-between px-6 py-3 border-b border-white/10 bg-[#161616]">
                 <div className="flex items-center gap-4">
                     <Link href="/" className="mc-button flex items-center gap-2 py-2 text-sm px-4">
-                        <img src="/icon.png" alt="Logo" className="w-6 h-6" />
-                        QUAY LẠI
+                        <ArrowLeft size={16} /> QUAY LẠI
                     </Link>
                     {gameLaunched && (
                         <div className="flex bg-black/40 rounded-lg p-1 border border-white/5">
