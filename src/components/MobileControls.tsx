@@ -150,72 +150,80 @@ export default function MobileControls({ onKeyDown, onKeyUp, onOpenSettings, top
     };
 
     const dispatchMouseEvent = (type: string, x: number, y: number, button: number = 0) => {
-        const target = targetRef.current || document.body;
-
-        let clientX = x;
-        let clientY = y;
-
         const iframe = document.getElementById('game-iframe') as HTMLIFrameElement;
-        if (iframe) {
-            const iframeRect = iframe.getBoundingClientRect();
-            // If target is inside the iframe, adjust the client coordinates to be relative to the iframe
-            if (target.ownerDocument !== document) {
-                clientX = x - iframeRect.left;
-                clientY = y - iframeRect.top;
-            }
-        }
+        if (!iframe) return;
 
-        const eventInit = {
-            view: (target.ownerDocument?.defaultView || window) as Window & typeof globalThis,
-            bubbles: true,
-            cancelable: true,
-            clientX: clientX,
-            clientY: clientY,
-            screenX: x,
-            screenY: y,
-            button: button,
-            buttons: (type === 'mousedown') ? (button === 0 ? 1 : button === 2 ? 2 : 4) : 0,
-            detail: type === 'click' ? 1 : 0,
-        };
+        const iframeRect = iframe.getBoundingClientRect();
+        const iframeX = x - iframeRect.left;
+        const iframeY = y - iframeRect.top;
 
-        const mouseEvent = new MouseEvent(type, eventInit);
-        target.dispatchEvent(mouseEvent);
+        const buttons = type === 'mousedown' ? 1 : 0;
+        const detail = (type === 'click' || type === 'mousedown') ? 1 : 0;
 
         const pointerTypeMap: Record<string, string> = {
             'mousedown': 'pointerdown',
             'mouseup': 'pointerup',
             'mousemove': 'pointermove',
-            'click': 'pointerup'
+            'click': 'click'
         };
-
         const pType = pointerTypeMap[type];
+
+        // Try to dispatch directly to iframe contentDocument/contentWindow (same-origin)
+        try {
+            const iframeWin = iframe.contentWindow;
+            const iframeDoc = iframe.contentDocument;
+            if (iframeWin && iframeDoc) {
+                // Find the actual element at tap position - canvas or deepest element
+                const el = iframeDoc.elementFromPoint(iframeX, iframeY) || iframeDoc.body;
+                const commonInit = {
+                    bubbles: true,
+                    cancelable: true,
+                    view: iframeWin,
+                    clientX: iframeX,
+                    clientY: iframeY,
+                    screenX: x,
+                    screenY: y,
+                    button: button,
+                    buttons,
+                    detail,
+                };
+                el.dispatchEvent(new MouseEvent(type, commonInit));
+                if (pType) {
+                    el.dispatchEvent(new PointerEvent(pType, {
+                        ...commonInit,
+                        pointerId: 1,
+                        isPrimary: true,
+                        pointerType: 'mouse',
+                        pressure: buttons > 0 ? 0.5 : 0,
+                    }));
+                }
+                return;
+            }
+        } catch (_) { /* cross-origin fallback below */ }
+
+        // Cross-origin fallback: dispatch on the iframe element itself at page coords
+        const target = targetRef.current || iframe;
+        const fallbackInit = {
+            bubbles: true,
+            cancelable: true,
+            view: window as Window & typeof globalThis,
+            clientX: x,
+            clientY: y,
+            screenX: x,
+            screenY: y,
+            button,
+            buttons,
+            detail,
+        };
+        target.dispatchEvent(new MouseEvent(type, fallbackInit));
         if (pType) {
-            const pointerEvent = new PointerEvent(pType, {
-                ...eventInit,
+            target.dispatchEvent(new PointerEvent(pType, {
+                ...fallbackInit,
                 pointerId: 1,
                 isPrimary: true,
                 pointerType: 'mouse',
-                width: 1,
-                height: 1,
-                pressure: (type === 'mousedown' || type === 'click') ? 0.5 : 0,
-            });
-            target.dispatchEvent(pointerEvent);
-        }
-
-        if (target.tagName === 'IFRAME' && iframe) {
-            try {
-                if (iframe.contentWindow) {
-                    const iframeClientX = x - iframe.getBoundingClientRect().left;
-                    const iframeClientY = y - iframe.getBoundingClientRect().top;
-                    const iframeEvent = new MouseEvent(type, { ...eventInit, clientX: iframeClientX, clientY: iframeClientY, bubbles: true });
-                    iframe.contentWindow.dispatchEvent(iframeEvent);
-
-                    if (pType) {
-                        const pEvent = new PointerEvent(pType, { ...eventInit, clientX: iframeClientX, clientY: iframeClientY, bubbles: true });
-                        iframe.contentWindow.dispatchEvent(pEvent);
-                    }
-                }
-            } catch (e) { }
+                pressure: buttons > 0 ? 0.5 : 0,
+            }));
         }
     };
 
