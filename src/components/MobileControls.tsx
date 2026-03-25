@@ -323,12 +323,12 @@ export default function MobileControls({ onKeyDown, onKeyUp, onOpenSettings, top
                                 // It's a tap, dispatch hover first to trigger button highlight
                                 dispatchMouseEvent('mousemove', tapX, tapY, 0);
 
-                                // Wait 50ms for game GUI to register the hover before clicking
-                                setTimeout(() => {
+                                // Wait 1 frame for hover to register then click
+                                requestAnimationFrame(() => {
                                     dispatchMouseEvent('mousedown', tapX, tapY, 0);
                                     dispatchMouseEvent('mouseup', tapX, tapY, 0);
                                     dispatchMouseEvent('click', tapX, tapY, 0);
-                                }, 50);
+                                });
                             }
                         }
                         lookTouchPos.current = null;
