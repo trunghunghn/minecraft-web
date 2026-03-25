@@ -230,11 +230,12 @@ export default function MobileControls({ onKeyDown, onKeyUp, onOpenSettings, top
 
 
     return (
-        <div className="fixed inset-0 pointer-events-none z-50 overflow-hidden font-mono">
+        <div className="fixed inset-0 pointer-events-none z-50 overflow-hidden font-mono" style={{ touchAction: 'none' }}>
             {/* Mouse Mode Touchpad */}
             {isMouseMode && (
                 <div
                     className="absolute inset-0 pointer-events-auto z-10"
+                    style={{ touchAction: 'none' }}
                     onPointerDown={(e) => {
                         lastTouchPos.current = { x: e.clientX, y: e.clientY };
                     }}
@@ -273,9 +274,11 @@ export default function MobileControls({ onKeyDown, onKeyUp, onOpenSettings, top
             )}
 
             {/* Look Area Touchpad (When not in Mouse Mode) */}
+            {/* Only covers right half of screen to avoid blocking movement buttons on the left */}
             {!isMouseMode && (
                 <div
-                    className="absolute inset-0 pointer-events-auto z-10"
+                    className="absolute right-0 top-0 bottom-0 pointer-events-auto z-10"
+                    style={{ left: '50%', touchAction: 'none' }}
                     onPointerDown={(e) => {
                         // Prevent swipe-to-look starting on buttons (grid/jump)
                         const target = e.target as HTMLElement;
