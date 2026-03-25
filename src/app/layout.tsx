@@ -5,7 +5,12 @@ export const metadata: Metadata = {
   title: "Minecraft Web 1.12.2 - Play & Code",
   description: "Website chơi Minecraft 1.12.2 trực tiếp trên trình duyệt với khả năng lập trình script.",
   icons: {
-    icon: "/icon.png",
+    icon: [
+      { url: "/icon.png" },
+      { url: "/icon.png", sizes: "32x32", type: "image/png" },
+    ],
+    shortcut: "/favicon.ico",
+    apple: "/icon.png",
   },
 };
 
