@@ -229,13 +229,16 @@ export default function MobileControls({ onKeyDown, onKeyUp, onOpenSettings, top
     };
 
 
+    // Calculate top offset in px - default header height is 60px
+    const topPx = topOffset.includes('[') ? topOffset.split('[')[1].split(']')[0] : '60px';
+
     return (
         <div className="fixed inset-0 pointer-events-none z-50 overflow-hidden font-mono" style={{ touchAction: 'none' }}>
-            {/* Mouse Mode Touchpad */}
+            {/* Mouse Mode Touchpad - starts below header */}
             {isMouseMode && (
                 <div
-                    className="absolute inset-0 pointer-events-auto z-10"
-                    style={{ touchAction: 'none' }}
+                    className="absolute right-0 bottom-0 pointer-events-auto z-10"
+                    style={{ top: topPx, left: 0, touchAction: 'none' }}
                     onPointerDown={(e) => {
                         lastTouchPos.current = { x: e.clientX, y: e.clientY };
                     }}
@@ -277,8 +280,8 @@ export default function MobileControls({ onKeyDown, onKeyUp, onOpenSettings, top
             {/* Only covers right half of screen to avoid blocking movement buttons on the left */}
             {!isMouseMode && (
                 <div
-                    className="absolute right-0 top-0 bottom-0 pointer-events-auto z-10"
-                    style={{ left: '50%', touchAction: 'none' }}
+                    className="absolute right-0 bottom-0 pointer-events-auto z-10"
+                    style={{ left: '50%', top: topPx, touchAction: 'none' }}
                     onPointerDown={(e) => {
                         // Prevent swipe-to-look starting on buttons (grid/jump)
                         const target = e.target as HTMLElement;
