@@ -63,8 +63,6 @@ const Btn = ({ label, code, className = "", onClick, style, mousePos, dispatchMo
 
 export default function MobileControls({ onKeyDown, onKeyUp, onOpenSettings, topOffset = "top-[60px]", bottomOffset = "bottom-2" }: MobileControlsProps) {
     const [isMouseMode, setIsMouseMode] = useState(false);
-    const [isTouchMode, setIsTouchMode] = useState(true);
-    const [isPointerLocked, setIsPointerLocked] = useState(false);
     const mousePos = useRef({ x: 100, y: 100 });
     const cursorRef = useRef<HTMLDivElement>(null);
     const targetRef = useRef<HTMLElement | null>(null);
@@ -108,58 +106,6 @@ export default function MobileControls({ onKeyDown, onKeyUp, onOpenSettings, top
 
         return () => clearInterval(timer);
     }, []);
-
-    useEffect(() => {
-        const checkPointerLock = () => {
-            const iframe = document.getElementById('game-iframe') as HTMLIFrameElement;
-            const locked = !!(
-                document.pointerLockElement ||
-                (iframe && iframe.contentDocument && iframe.contentDocument.pointerLockElement)
-            );
-            setIsPointerLocked(locked);
-        };
-
-        document.addEventListener('pointerlockchange', checkPointerLock);
-
-        const iframe = document.getElementById('game-iframe') as HTMLIFrameElement;
-        if (iframe) {
-            iframe.addEventListener('load', () => {
-                try {
-                    if (iframe.contentDocument) {
-                        iframe.contentDocument.addEventListener('pointerlockchange', checkPointerLock);
-                    }
-                } catch (e) { }
-            });
-            try {
-                if (iframe.contentDocument) {
-                    iframe.contentDocument.addEventListener('pointerlockchange', checkPointerLock);
-                }
-            } catch (e) { }
-        }
-
-        const timer = setInterval(checkPointerLock, 500);
-
-        return () => {
-            document.removeEventListener('pointerlockchange', checkPointerLock);
-            if (iframe) {
-                try {
-                    if (iframe.contentDocument) {
-                        iframe.contentDocument.removeEventListener('pointerlockchange', checkPointerLock);
-                    }
-                } catch (e) { }
-            }
-            clearInterval(timer);
-        };
-    }, []);
-
-    useEffect(() => {
-        if (isPointerLocked) {
-            setIsTouchMode(false);
-            setIsMouseMode(false);
-        } else {
-            setIsTouchMode(true);
-        }
-    }, [isPointerLocked]);
 
     const dispatchKeyEvent = (type: 'keydown' | 'keyup', key: string) => {
         // Map common keys if needed (e.g., Space for Jump)
@@ -298,7 +244,7 @@ export default function MobileControls({ onKeyDown, onKeyUp, onOpenSettings, top
     return (
         <div className="fixed inset-0 pointer-events-none z-50 overflow-hidden font-mono" style={{ touchAction: 'none' }}>
             {/* Mouse Mode Touchpad - starts below header */}
-            {(isMouseMode && !isTouchMode) && (
+            {isMouseMode && (
                 <div
                     className="absolute right-0 bottom-0 pointer-events-auto z-10"
                     style={{ top: topPx, left: 0, touchAction: 'none' }}
@@ -340,8 +286,8 @@ export default function MobileControls({ onKeyDown, onKeyUp, onOpenSettings, top
             )}
 
             {/* Look Area Touchpad (When not in Mouse Mode) */}
-            {/* Only covers right half of screen to avoid blocking movement buttons on the left */}
-            {(!isMouseMode && !isTouchMode) && (
+            {/* Covers full screen to natively intercept touches and translate to game mouse events */}
+            {!isMouseMode && (
                 <div
                     className="absolute right-0 bottom-0 pointer-events-auto z-10"
                     style={{ left: 0, top: topPx, touchAction: 'none' }}
@@ -362,7 +308,8 @@ export default function MobileControls({ onKeyDown, onKeyUp, onOpenSettings, top
                             const dy = Math.abs(e.clientY - lookStartPos.current.y);
 
                             if (duration < 250 && dx < 10 && dy < 10) {
-                                // It's a tap, dispatch click at current position
+                                // It's a tap, dispatch hover then click at current position
+                                dispatchMouseEvent('mousemove', e.clientX, e.clientY, 0);
                                 dispatchMouseEvent('mousedown', e.clientX, e.clientY, 0);
                                 setTimeout(() => {
                                     dispatchMouseEvent('mouseup', e.clientX, e.clientY, 0);
@@ -417,21 +364,9 @@ export default function MobileControls({ onKeyDown, onKeyUp, onOpenSettings, top
                 <Btn label="TAB" code="Tab" className="w-[70px] h-[30px]" mousePos={mousePos} dispatchMouseEvent={dispatchMouseEvent} handlePress={handlePress} handleRelease={handleRelease} />
                 <Btn label="3RD" code="F5" className="w-[70px] h-[30px]" mousePos={mousePos} dispatchMouseEvent={dispatchMouseEvent} handlePress={handlePress} handleRelease={handleRelease} />
                 <Btn
-                    label="TOUCH"
-                    className={`w-[70px] h-[30px] ml-4 ${isTouchMode ? 'bg-green-500/60' : ''}`}
-                    onClick={() => {
-                        setIsTouchMode(!isTouchMode);
-                        if (!isTouchMode) setIsMouseMode(false);
-                    }}
-                    mousePos={mousePos} dispatchMouseEvent={dispatchMouseEvent} handlePress={handlePress} handleRelease={handleRelease}
-                />
-                <Btn
                     label="MOUSE"
-                    className={`w-[70px] h-[30px] flex-shrink-0 ${isMouseMode && !isTouchMode ? 'bg-blue-500/60' : ''}`}
-                    onClick={() => {
-                        setIsMouseMode(!isMouseMode);
-                        if (!isMouseMode) setIsTouchMode(false);
-                    }}
+                    className={`w-[70px] h-[30px] ml-4 flex-shrink-0 ${isMouseMode ? 'bg-blue-500/60' : ''}`}
+                    onClick={() => setIsMouseMode(!isMouseMode)}
                     mousePos={mousePos} dispatchMouseEvent={dispatchMouseEvent} handlePress={handlePress} handleRelease={handleRelease}
                 />
             </div>
