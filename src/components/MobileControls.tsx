@@ -186,10 +186,10 @@ export default function MobileControls({ onKeyDown, onKeyUp, onOpenSettings, top
                     const canvasRect = canvasEl.getBoundingClientRect();
                     const scaleX = canvasEl.width / canvasRect.width;
                     const scaleY = canvasEl.height / canvasRect.height;
-                    // CRITICAL: Eaglercraft maps clientX/Y through CSS scale to get game pixel coords
-                    // When scaleX != 1.0, we must send SCALED coordinates
-                    finalClientX = iframeX * scaleX;
-                    finalClientY = iframeY * scaleY;
+                    // Revert: do NOT multiply by CSS scale, it makes the offset worse
+                    // Eaglercraft seems to expect standard clientX/Y or offsetX/Y
+                    finalClientX = iframeX;
+                    finalClientY = iframeY;
                     // Show debug dot at page-level coords where tap was sent
                     if (type === 'mousemove') {
                         setDebugDot({ x, y });
@@ -205,6 +205,8 @@ export default function MobileControls({ onKeyDown, onKeyUp, onOpenSettings, top
                     clientY: finalClientY,
                     screenX: x,
                     screenY: y,
+                    offsetX: finalClientX,
+                    offsetY: finalClientY,
                     button: button,
                     buttons,
                     detail,
