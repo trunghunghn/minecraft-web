@@ -275,7 +275,7 @@ export default function MobileControls({ onKeyDown, onKeyUp, onOpenSettings, top
                     }}
                     onPointerMove={(e) => {
                         if (lastTouchPos.current) {
-                            const sensitivity = 5.0;
+                            const sensitivity = 2.5;
                             const dx = (e.clientX - lastTouchPos.current.x) * sensitivity;
                             const dy = (e.clientY - lastTouchPos.current.y) * sensitivity;
 
@@ -303,6 +303,11 @@ export default function MobileControls({ onKeyDown, onKeyUp, onOpenSettings, top
                         // Prevent swipe-to-look starting on buttons (grid/jump)
                         const target = e.target as HTMLElement;
                         if (target.tagName === 'BUTTON') return;
+
+                        // Ignore taps in the top button bar area (first 36px of look area)
+                        const iframe = document.getElementById('game-iframe') as HTMLIFrameElement;
+                        const iframeRect = iframe ? iframe.getBoundingClientRect() : { top: 60, left: 0 };
+                        if (e.clientY < iframeRect.top + 36) return;
 
                         lookTouchPos.current = { x: e.clientX, y: e.clientY };
                         lookStartPos.current = { x: e.clientX, y: e.clientY };
@@ -359,30 +364,33 @@ export default function MobileControls({ onKeyDown, onKeyUp, onOpenSettings, top
                 </div>
             )}
 
-            {/* Top Bar */}
-            <div className={`absolute ${topOffset} left-2 flex gap-1 pointer-events-none z-20`}>
-                <Btn label="DEBUG" code="F3" className="w-[70px] h-[30px]" mousePos={mousePos} dispatchMouseEvent={dispatchMouseEvent} handlePress={handlePress} handleRelease={handleRelease} />
-                <Btn label="CHAT" code="t" className="w-[70px] h-[30px]" mousePos={mousePos} dispatchMouseEvent={dispatchMouseEvent} handlePress={handlePress} handleRelease={handleRelease} />
-                <button
-                    className="w-[70px] h-[30px] bg-gray-500/40 border border-white/30 flex items-center justify-center text-white font-bold text-[11px] uppercase pointer-events-auto active:bg-white/30 backdrop-blur-sm"
-                    onClick={() => {
-                        const txt = prompt("Nhập nội dung chat:");
-                        if (txt) {
-                            // Virtual chat implementation
-                        }
-                    }}
-                >
-                    CHAT+
-                </button>
-                <Btn label="ESC" code="Escape" className="w-[70px] h-[30px] !bg-red-500/40" mousePos={mousePos} dispatchMouseEvent={dispatchMouseEvent} handlePress={handlePress} handleRelease={handleRelease} />
-                <Btn label="TAB" code="Tab" className="w-[70px] h-[30px]" mousePos={mousePos} dispatchMouseEvent={dispatchMouseEvent} handlePress={handlePress} handleRelease={handleRelease} />
-                <Btn label="3RD" code="F5" className="w-[70px] h-[30px]" mousePos={mousePos} dispatchMouseEvent={dispatchMouseEvent} handlePress={handlePress} handleRelease={handleRelease} />
-                <Btn
-                    label="MOUSE"
-                    className={`w-[70px] h-[30px] ml-4 flex-shrink-0 ${isMouseMode ? 'bg-blue-500/60' : ''}`}
-                    onClick={() => setIsMouseMode(!isMouseMode)}
-                    mousePos={mousePos} dispatchMouseEvent={dispatchMouseEvent} handlePress={handlePress} handleRelease={handleRelease}
-                />
+            {/* Top Bar — pointer-events-auto on wrapper to block look area from capturing button taps */}
+            <div className={`absolute ${topOffset} left-0 right-0 h-[36px] z-20 pointer-events-auto`}
+                onPointerDown={(e) => e.stopPropagation()}>
+                <div className="flex gap-1 ml-2 pointer-events-none h-full">
+                    <Btn label="DEBUG" code="F3" className="w-[70px] h-[30px]" mousePos={mousePos} dispatchMouseEvent={dispatchMouseEvent} handlePress={handlePress} handleRelease={handleRelease} />
+                    <Btn label="CHAT" code="t" className="w-[70px] h-[30px]" mousePos={mousePos} dispatchMouseEvent={dispatchMouseEvent} handlePress={handlePress} handleRelease={handleRelease} />
+                    <button
+                        className="w-[70px] h-[30px] bg-gray-500/40 border border-white/30 flex items-center justify-center text-white font-bold text-[11px] uppercase pointer-events-auto active:bg-white/30 backdrop-blur-sm"
+                        onClick={() => {
+                            const txt = prompt("Nhập nội dung chat:");
+                            if (txt) {
+                                // Virtual chat implementation
+                            }
+                        }}
+                    >
+                        CHAT+
+                    </button>
+                    <Btn label="ESC" code="Escape" className="w-[70px] h-[30px] !bg-red-500/40" mousePos={mousePos} dispatchMouseEvent={dispatchMouseEvent} handlePress={handlePress} handleRelease={handleRelease} />
+                    <Btn label="TAB" code="Tab" className="w-[70px] h-[30px]" mousePos={mousePos} dispatchMouseEvent={dispatchMouseEvent} handlePress={handlePress} handleRelease={handleRelease} />
+                    <Btn label="3RD" code="F5" className="w-[70px] h-[30px]" mousePos={mousePos} dispatchMouseEvent={dispatchMouseEvent} handlePress={handlePress} handleRelease={handleRelease} />
+                    <Btn
+                        label="MOUSE"
+                        className={`w-[70px] h-[30px] ml-4 flex-shrink-0 ${isMouseMode ? 'bg-blue-500/60' : ''}`}
+                        onClick={() => setIsMouseMode(!isMouseMode)}
+                        mousePos={mousePos} dispatchMouseEvent={dispatchMouseEvent} handlePress={handlePress} handleRelease={handleRelease}
+                    />
+                </div>
             </div>
 
             {/* Bottom Left 3x3 Grid */}
