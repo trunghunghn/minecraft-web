@@ -154,6 +154,7 @@ export default function MobileControls({ onKeyDown, onKeyUp, onOpenSettings, top
         if (!iframe) return;
 
         const iframeRect = iframe.getBoundingClientRect();
+        // Convert page coords to iframe-relative coords
         const iframeX = x - iframeRect.left;
         const iframeY = y - iframeRect.top;
 
@@ -168,19 +169,38 @@ export default function MobileControls({ onKeyDown, onKeyUp, onOpenSettings, top
         };
         const pType = pointerTypeMap[type];
 
-        // Try to dispatch directly to iframe contentDocument/contentWindow (same-origin)
+        // Dispatch to iframe contentDocument (same-origin path)
         try {
             const iframeWin = iframe.contentWindow;
             const iframeDoc = iframe.contentDocument;
             if (iframeWin && iframeDoc) {
-                // Find the actual element at tap position - canvas or deepest element
+                // Find the actual element at tap position
                 const el = iframeDoc.elementFromPoint(iframeX, iframeY) || iframeDoc.body;
+
+                // If it's a canvas, check for CSS scaling and compute scaled client coords
+                let finalClientX = iframeX;
+                let finalClientY = iframeY;
+                if (el.tagName === 'CANVAS') {
+                    const canvasEl = el as HTMLCanvasElement;
+                    const canvasRect = canvasEl.getBoundingClientRect();
+                    const scaleX = canvasEl.width / canvasRect.width;
+                    const scaleY = canvasEl.height / canvasRect.height;
+                    // Eaglercraft uses clientX/clientY relative to the element for internal hit testing
+                    // We pass iframeX/iframeY since canvas fills the iframe viewport
+                    finalClientX = iframeX;
+                    finalClientY = iframeY;
+                    // Log for debugging
+                    if (type === 'mousemove') {
+                        console.log(`[MC Touch] iframeXY:(${Math.round(iframeX)},${Math.round(iframeY)}) canvasScale:(${scaleX.toFixed(2)},${scaleY.toFixed(2)}) canvasRect:${Math.round(canvasRect.left)},${Math.round(canvasRect.top)} size:${canvasEl.width}x${canvasEl.height}`);
+                    }
+                }
+
                 const commonInit = {
                     bubbles: true,
                     cancelable: true,
                     view: iframeWin,
-                    clientX: iframeX,
-                    clientY: iframeY,
+                    clientX: finalClientX,
+                    clientY: finalClientY,
                     screenX: x,
                     screenY: y,
                     button: button,
