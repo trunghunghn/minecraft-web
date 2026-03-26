@@ -63,6 +63,7 @@ const Btn = ({ label, code, className = "", onClick, style, mousePos, dispatchMo
 
 export default function MobileControls({ onKeyDown, onKeyUp, onOpenSettings, topOffset = "top-[60px]", bottomOffset = "bottom-2" }: MobileControlsProps) {
     const [isMouseMode, setIsMouseMode] = useState(false);
+    const [debugDot, setDebugDot] = useState<{ x: number; y: number } | null>(null);
     const mousePos = useRef({ x: 100, y: 100 });
     const cursorRef = useRef<HTMLDivElement>(null);
     const targetRef = useRef<HTMLElement | null>(null);
@@ -185,13 +186,14 @@ export default function MobileControls({ onKeyDown, onKeyUp, onOpenSettings, top
                     const canvasRect = canvasEl.getBoundingClientRect();
                     const scaleX = canvasEl.width / canvasRect.width;
                     const scaleY = canvasEl.height / canvasRect.height;
-                    // Eaglercraft uses clientX/clientY relative to the element for internal hit testing
-                    // We pass iframeX/iframeY since canvas fills the iframe viewport
-                    finalClientX = iframeX;
-                    finalClientY = iframeY;
-                    // Log for debugging
+                    // CRITICAL: Eaglercraft maps clientX/Y through CSS scale to get game pixel coords
+                    // When scaleX != 1.0, we must send SCALED coordinates
+                    finalClientX = iframeX * scaleX;
+                    finalClientY = iframeY * scaleY;
+                    // Show debug dot at page-level coords where tap was sent
                     if (type === 'mousemove') {
-                        console.log(`[MC Touch] iframeXY:(${Math.round(iframeX)},${Math.round(iframeY)}) canvasScale:(${scaleX.toFixed(2)},${scaleY.toFixed(2)}) canvasRect:${Math.round(canvasRect.left)},${Math.round(canvasRect.top)} size:${canvasEl.width}x${canvasEl.height}`);
+                        setDebugDot({ x, y });
+                        console.log(`[MC Touch Canvas] tap:(${Math.round(iframeX)},${Math.round(iframeY)}) scale:(${scaleX.toFixed(2)},${scaleY.toFixed(2)}) sending:(${Math.round(finalClientX)},${Math.round(finalClientY)}) canvas:${canvasEl.width}x${canvasEl.height} cssSize:${Math.round(canvasRect.width)}x${Math.round(canvasRect.height)}`);
                     }
                 }
 
@@ -370,6 +372,17 @@ export default function MobileControls({ onKeyDown, onKeyUp, onOpenSettings, top
                         }
                     }}
                 />
+            )}
+
+            {/* Debug dot - shows exactly where tap event was sent */}
+            {debugDot && (
+                <div
+                    className="absolute pointer-events-none z-[99] w-8 h-8 -translate-x-4 -translate-y-4"
+                    style={{ left: debugDot.x, top: debugDot.y }}
+                    onAnimationEnd={() => setDebugDot(null)}
+                >
+                    <div className="w-full h-full rounded-full bg-red-500 opacity-70 animate-ping" />
+                </div>
             )}
 
             {/* Virtual Cursor */}
