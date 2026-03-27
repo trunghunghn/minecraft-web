@@ -194,22 +194,12 @@ export default function MobileControls({ onKeyDown, onKeyUp, onOpenSettings, top
                     el = iframeDoc.elementFromPoint(iframeX, iframeY) || iframeDoc.body;
                 }
 
-                // If it's a canvas, check for CSS scaling and compute scaled client coords
+                // If it's a canvas, no need to manually scale: standard browsers and webgl engines expect CSS coordinates
                 let finalClientX = iframeX;
                 let finalClientY = iframeY;
                 if (el.tagName === 'CANVAS') {
-                    const canvasEl = el as HTMLCanvasElement;
-                    const canvasRect = canvasEl.getBoundingClientRect();
-                    const scaleX = canvasEl.width / canvasRect.width;
-                    const scaleY = canvasEl.height / canvasRect.height;
-                    // CRITICAL: Eaglercraft maps clientX/Y through CSS scale to get game pixel coords
-                    // When scaleX != 1.0, we must send SCALED coordinates
-                    finalClientX = iframeX * scaleX;
-                    finalClientY = iframeY * scaleY;
-                    // Show debug dot at page-level coords where tap was sent
                     if (type === 'mousedown') {
                         setDebugDot({ x, y });
-                        console.log(`[MC Touch Canvas] tap:(${Math.round(iframeX)},${Math.round(iframeY)}) scale:(${scaleX.toFixed(2)},${scaleY.toFixed(2)}) sending:(${Math.round(finalClientX)},${Math.round(finalClientY)}) canvas:${canvasEl.width}x${canvasEl.height} cssSize:${Math.round(canvasRect.width)}x${Math.round(canvasRect.height)}`);
                     }
                 }
 
@@ -295,12 +285,6 @@ export default function MobileControls({ onKeyDown, onKeyUp, onOpenSettings, top
                     className="absolute right-0 bottom-0 pointer-events-auto z-10"
                     style={{ top: topPx, left: 0, touchAction: 'none' }}
                     onPointerDown={(e) => {
-                        mousePos.current.x = e.clientX;
-                        mousePos.current.y = e.clientY;
-                        if (cursorRef.current) {
-                            cursorRef.current.style.transform = `translate3d(${e.clientX}px, ${e.clientY}px, 0)`;
-                        }
-                        dispatchMouseEvent('mousemove', e.clientX, e.clientY);
                         lastTouchPos.current = { x: e.clientX, y: e.clientY };
                         lookStartTime.current = Date.now();
                     }}
@@ -310,25 +294,30 @@ export default function MobileControls({ onKeyDown, onKeyUp, onOpenSettings, top
                             const dx = Math.abs(e.clientX - lastTouchPos.current.x);
                             const dy = Math.abs(e.clientY - lastTouchPos.current.y);
 
-                            // Allow quick tap to click even in absolute mouse mode
+                            // Quick tap on trackpad acts as a Left Click AT THE CURSOR POSITION
                             if (duration < 250 && dx < 10 && dy < 10) {
-                                dispatchMouseEvent('mousedown', e.clientX, e.clientY, 0);
-                                dispatchMouseEvent('mouseup', e.clientX, e.clientY, 0);
-                                dispatchMouseEvent('click', e.clientX, e.clientY, 0);
+                                dispatchMouseEvent('mousedown', mousePos.current.x, mousePos.current.y, 0);
+                                dispatchMouseEvent('mouseup', mousePos.current.x, mousePos.current.y, 0);
+                                dispatchMouseEvent('click', mousePos.current.x, mousePos.current.y, 0);
                             }
                         }
                         lastTouchPos.current = null;
                     }}
                     onPointerMove={(e) => {
                         if (lastTouchPos.current) {
-                            mousePos.current.x = e.clientX;
-                            mousePos.current.y = e.clientY;
+                            // Relative tracking like a laptop trackpad (PojavLauncher style)
+                            const sensitivity = 1.6; 
+                            const dx = (e.clientX - lastTouchPos.current.x) * sensitivity;
+                            const dy = (e.clientY - lastTouchPos.current.y) * sensitivity;
+                            
+                            mousePos.current.x = Math.max(0, Math.min(window.innerWidth, mousePos.current.x + dx));
+                            mousePos.current.y = Math.max(0, Math.min(window.innerHeight, mousePos.current.y + dy));
                             
                             if (cursorRef.current) {
-                                cursorRef.current.style.transform = `translate3d(${e.clientX}px, ${e.clientY}px, 0)`;
+                                cursorRef.current.style.transform = `translate3d(${mousePos.current.x}px, ${mousePos.current.y}px, 0)`;
                             }
                             
-                            dispatchMouseEvent('mousemove', e.clientX, e.clientY);
+                            dispatchMouseEvent('mousemove', mousePos.current.x, mousePos.current.y);
                             lastTouchPos.current = { x: e.clientX, y: e.clientY };
                         }
                     }}
