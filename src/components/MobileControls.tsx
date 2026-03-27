@@ -122,13 +122,23 @@ export default function MobileControls({ onKeyDown, onKeyUp, onOpenSettings, top
                                         key === "Escape" ? "Escape" :
                                             key === " " ? "Space" : key;
 
+        let eventKeyCode = 0;
+        if (key === " ") eventKeyCode = 32;
+        else if (key === "Escape") eventKeyCode = 27;
+        else if (key === "Tab") eventKeyCode = 9;
+        else if (key === "Shift") eventKeyCode = 16;
+        else if (key === "F1") eventKeyCode = 112;
+        else if (key === "F3") eventKeyCode = 114;
+        else if (key === "F5") eventKeyCode = 116;
+        else if (key.length === 1) eventKeyCode = key.toUpperCase().charCodeAt(0);
+
         const eventInit = {
             key: eventKey,
             code: eventCode,
             bubbles: true,
             cancelable: true,
             view: window,
-            keyCode: key === " " ? 32 : (key.length === 1 ? key.toUpperCase().charCodeAt(0) : 0)
+            keyCode: eventKeyCode
         };
 
         const event = new KeyboardEvent(type, eventInit);
@@ -175,8 +185,14 @@ export default function MobileControls({ onKeyDown, onKeyUp, onOpenSettings, top
             const iframeWin = iframe.contentWindow;
             const iframeDoc = iframe.contentDocument;
             if (iframeWin && iframeDoc) {
-                // Find the actual element at tap position
-                const el = iframeDoc.elementFromPoint(iframeX, iframeY) || iframeDoc.body;
+                // Find the actual element at tap position.
+                // NOTE: elementFromPoint is very slow and causes lag if called on every mousemove.
+                let el: Element;
+                if (type === 'mousemove') {
+                    el = iframeDoc.querySelector('canvas') || iframeDoc.body;
+                } else {
+                    el = iframeDoc.elementFromPoint(iframeX, iframeY) || iframeDoc.body;
+                }
 
                 // If it's a canvas, check for CSS scaling and compute scaled client coords
                 let finalClientX = iframeX;
@@ -186,12 +202,12 @@ export default function MobileControls({ onKeyDown, onKeyUp, onOpenSettings, top
                     const canvasRect = canvasEl.getBoundingClientRect();
                     const scaleX = canvasEl.width / canvasRect.width;
                     const scaleY = canvasEl.height / canvasRect.height;
-                    // Revert: do NOT multiply by CSS scale, it makes the offset worse
-                    // Eaglercraft seems to expect standard clientX/Y or offsetX/Y
-                    finalClientX = iframeX;
-                    finalClientY = iframeY;
+                    // CRITICAL: Eaglercraft maps clientX/Y through CSS scale to get game pixel coords
+                    // When scaleX != 1.0, we must send SCALED coordinates
+                    finalClientX = iframeX * scaleX;
+                    finalClientY = iframeY * scaleY;
                     // Show debug dot at page-level coords where tap was sent
-                    if (type === 'mousemove') {
+                    if (type === 'mousedown') {
                         setDebugDot({ x, y });
                         console.log(`[MC Touch Canvas] tap:(${Math.round(iframeX)},${Math.round(iframeY)}) scale:(${scaleX.toFixed(2)},${scaleY.toFixed(2)}) sending:(${Math.round(finalClientX)},${Math.round(finalClientY)}) canvas:${canvasEl.width}x${canvasEl.height} cssSize:${Math.round(canvasRect.width)}x${Math.round(canvasRect.height)}`);
                     }
@@ -205,8 +221,6 @@ export default function MobileControls({ onKeyDown, onKeyUp, onOpenSettings, top
                     clientY: finalClientY,
                     screenX: x,
                     screenY: y,
-                    offsetX: finalClientX,
-                    offsetY: finalClientY,
                     button: button,
                     buttons,
                     detail,
@@ -281,37 +295,41 @@ export default function MobileControls({ onKeyDown, onKeyUp, onOpenSettings, top
                     className="absolute right-0 bottom-0 pointer-events-auto z-10"
                     style={{ top: topPx, left: 0, touchAction: 'none' }}
                     onPointerDown={(e) => {
+                        mousePos.current.x = e.clientX;
+                        mousePos.current.y = e.clientY;
+                        if (cursorRef.current) {
+                            cursorRef.current.style.transform = `translate3d(${e.clientX}px, ${e.clientY}px, 0)`;
+                        }
+                        dispatchMouseEvent('mousemove', e.clientX, e.clientY);
                         lastTouchPos.current = { x: e.clientX, y: e.clientY };
+                        lookStartTime.current = Date.now();
                     }}
                     onPointerUp={(e) => {
                         if (lastTouchPos.current) {
+                            const duration = Date.now() - lookStartTime.current;
                             const dx = Math.abs(e.clientX - lastTouchPos.current.x);
                             const dy = Math.abs(e.clientY - lastTouchPos.current.y);
 
-                            if (dx < 15 && dy < 15) {
-                                dispatchMouseEvent('mousemove', mousePos.current.x, mousePos.current.y);
-                                dispatchMouseEvent('mousedown', mousePos.current.x, mousePos.current.y, 0);
-                                dispatchMouseEvent('mouseup', mousePos.current.x, mousePos.current.y, 0);
-                                dispatchMouseEvent('click', mousePos.current.x, mousePos.current.y, 0);
+                            // Allow quick tap to click even in absolute mouse mode
+                            if (duration < 250 && dx < 10 && dy < 10) {
+                                dispatchMouseEvent('mousedown', e.clientX, e.clientY, 0);
+                                dispatchMouseEvent('mouseup', e.clientX, e.clientY, 0);
+                                dispatchMouseEvent('click', e.clientX, e.clientY, 0);
                             }
                         }
                         lastTouchPos.current = null;
                     }}
                     onPointerMove={(e) => {
                         if (lastTouchPos.current) {
-                            const sensitivity = 2.5;
-                            const dx = (e.clientX - lastTouchPos.current.x) * sensitivity;
-                            const dy = (e.clientY - lastTouchPos.current.y) * sensitivity;
-
-                            mousePos.current.x = Math.max(0, Math.min(window.innerWidth, mousePos.current.x + dx));
-                            mousePos.current.y = Math.max(0, Math.min(window.innerHeight, mousePos.current.y + dy));
-
+                            mousePos.current.x = e.clientX;
+                            mousePos.current.y = e.clientY;
+                            
                             if (cursorRef.current) {
-                                cursorRef.current.style.transform = `translate3d(${mousePos.current.x}px, ${mousePos.current.y}px, 0)`;
+                                cursorRef.current.style.transform = `translate3d(${e.clientX}px, ${e.clientY}px, 0)`;
                             }
-
+                            
+                            dispatchMouseEvent('mousemove', e.clientX, e.clientY);
                             lastTouchPos.current = { x: e.clientX, y: e.clientY };
-                            dispatchMouseEvent('mousemove', mousePos.current.x, mousePos.current.y);
                         }
                     }}
                 />
@@ -328,10 +346,6 @@ export default function MobileControls({ onKeyDown, onKeyUp, onOpenSettings, top
                         const target = e.target as HTMLElement;
                         if (target.tagName === 'BUTTON') return;
 
-                        // Ignore taps in the top button bar area (first 36px of look area)
-                        const iframe = document.getElementById('game-iframe') as HTMLIFrameElement;
-                        const iframeRect = iframe ? iframe.getBoundingClientRect() : { top: 60, left: 0 };
-                        if (e.clientY < iframeRect.top + 36) return;
 
                         lookTouchPos.current = { x: e.clientX, y: e.clientY };
                         lookStartPos.current = { x: e.clientX, y: e.clientY };
@@ -399,9 +413,8 @@ export default function MobileControls({ onKeyDown, onKeyUp, onOpenSettings, top
                 </div>
             )}
 
-            {/* Top Bar — pointer-events-auto on wrapper to block look area from capturing button taps */}
-            <div className={`absolute ${topOffset} left-0 right-0 h-[36px] z-20 pointer-events-auto`}
-                onPointerDown={(e) => e.stopPropagation()}>
+            {/* Top Bar — pointer-events-none on wrapper to allow clicking through to the game */}
+            <div className={`absolute ${topOffset} left-0 right-0 h-[36px] z-20 pointer-events-none`}>
                 <div className="flex gap-1 ml-2 pointer-events-none h-full">
                     <Btn label="DEBUG" code="F3" className="w-[70px] h-[30px]" mousePos={mousePos} dispatchMouseEvent={dispatchMouseEvent} handlePress={handlePress} handleRelease={handleRelease} />
                     <Btn label="CHAT" code="t" className="w-[70px] h-[30px]" mousePos={mousePos} dispatchMouseEvent={dispatchMouseEvent} handlePress={handlePress} handleRelease={handleRelease} />
