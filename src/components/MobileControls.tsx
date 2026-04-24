@@ -65,6 +65,18 @@ export default function MobileControls({ onKeyDown, onKeyUp, onOpenSettings, top
     const [isMouseMode, setIsMouseMode] = useState(false);
     const [debugDot, setDebugDot] = useState<{ x: number; y: number } | null>(null);
     const mousePos = useRef({ x: 100, y: 100 });
+
+    // Helper: Gửi sự kiện vào game thông qua Bridge (postMessage)
+    const sendToBridge = (eventData: any) => {
+        const iframe = document.getElementById('game-iframe') as HTMLIFrameElement;
+        if (iframe && iframe.contentWindow) {
+            iframe.contentWindow.postMessage({
+                type: "dispatch-event",
+                event: eventData
+            }, "*");
+        }
+    };
+
     const cursorRef = useRef<HTMLDivElement>(null);
     const targetRef = useRef<HTMLElement | null>(null);
     const lastTouchPos = useRef<{ x: number, y: number } | null>(null);
@@ -194,10 +206,18 @@ export default function MobileControls({ onKeyDown, onKeyUp, onOpenSettings, top
                     el = iframeDoc.elementFromPoint(iframeX, iframeY) || iframeDoc.body;
                 }
 
-                // If it's a canvas, no need to manually scale: standard browsers and webgl engines expect CSS coordinates
                 let finalClientX = iframeX;
                 let finalClientY = iframeY;
                 if (el.tagName === 'CANVAS') {
+                    const canvasEl = el as HTMLCanvasElement;
+                    const canvasRect = canvasEl.getBoundingClientRect();
+                    const scaleX = canvasEl.width / canvasRect.width;
+                    const scaleY = canvasEl.height / canvasRect.height;
+                    
+                    // LWJGL Eaglercraft engine mapping issue: we MUST pre-scale the coordinates
+                    finalClientX = iframeX * scaleX;
+                    finalClientY = iframeY * scaleY;
+                    
                     if (type === 'mousedown') {
                         setDebugDot({ x, y });
                     }
@@ -225,6 +245,20 @@ export default function MobileControls({ onKeyDown, onKeyUp, onOpenSettings, top
                         pressure: buttons > 0 ? 0.5 : 0,
                     }));
                 }
+                
+                // CŨNG gửi qua bridge để đảm bảo engine nhận được (nhất là movementX/Y)
+                sendToBridge({
+                    category: 'mouse',
+                    type,
+                    clientX: finalClientX,
+                    clientY: finalClientY,
+                    screenX: x,
+                    screenY: y,
+                    button,
+                    buttons,
+                    movementX: 0,
+                    movementY: 0
+                });
                 return;
             }
         } catch (_) { /* cross-origin fallback below */ }
@@ -256,9 +290,9 @@ export default function MobileControls({ onKeyDown, onKeyUp, onOpenSettings, top
     };
 
     const dispatchMovementEvent = (dx: number, dy: number) => {
-        const target = targetRef.current || document.body;
+        const iframe = document.getElementById('game-iframe') as HTMLIFrameElement;
+        
         const eventInit = {
-            view: (target.ownerDocument?.defaultView || window) as Window & typeof globalThis,
             bubbles: true,
             cancelable: true,
             clientX: mousePos.current.x,
@@ -269,8 +303,35 @@ export default function MobileControls({ onKeyDown, onKeyUp, onOpenSettings, top
             buttons: 0,
         };
 
-        const mouseEvent = new MouseEvent('mousemove', eventInit);
-        target.dispatchEvent(mouseEvent);
+        // 1. ƯU TIÊN: Gửi qua bridge (Đây là cách ổn định nhất cho camera rotation)
+        sendToBridge({
+            category: 'mouse',
+            type: 'mousemove',
+            clientX: mousePos.current.x,
+            clientY: mousePos.current.y,
+            movementX: dx,
+            movementY: dy,
+            button: -1,
+            buttons: 0
+        });
+
+        // 2. PHỤ: Dispatch trực tiếp vào main window
+        window.dispatchEvent(new MouseEvent('mousemove', eventInit));
+
+        if (!iframe) return;
+
+        // 3. PHỤ: Thử can thiệp sâu vào DOM nếu cùng origin
+        try {
+            const iframeWin = iframe.contentWindow;
+            const iframeDoc = iframe.contentDocument;
+            
+            if (iframeWin && iframeDoc) {
+                const targetEl = iframeDoc.querySelector('canvas') || iframeDoc.body;
+                const mouseEvent = new MouseEvent('mousemove', { ...eventInit, view: iframeWin });
+                targetEl.dispatchEvent(mouseEvent);
+                iframeDoc.dispatchEvent(mouseEvent);
+            }
+        } catch (_) { /* Ignored */ }
     };
 
 
@@ -339,8 +400,14 @@ export default function MobileControls({ onKeyDown, onKeyUp, onOpenSettings, top
                         lookTouchPos.current = { x: e.clientX, y: e.clientY };
                         lookStartPos.current = { x: e.clientX, y: e.clientY };
                         lookStartTime.current = Date.now();
+                        
+                        // Kích hoạt Virtual Pointer Lock trong iframe
+                        sendToBridge({ type: "set-virtual-lock", value: true });
                     }}
                     onPointerUp={(e) => {
+                        // Tắt Virtual Pointer Lock
+                        sendToBridge({ type: "set-virtual-lock", value: false });
+
                         // Tap to click detection
                         if (lookStartPos.current) {
                             const duration = Date.now() - lookStartTime.current;
@@ -368,7 +435,7 @@ export default function MobileControls({ onKeyDown, onKeyUp, onOpenSettings, top
                     }}
                     onPointerMove={(e) => {
                         if (lookTouchPos.current) {
-                            const sensitivity = 1.0;
+                            const sensitivity = 2.2; // Tăng từ 1.8 lên 2.2 để mượt hơn
                             const dx = (e.clientX - lookTouchPos.current.x) * sensitivity;
                             const dy = (e.clientY - lookTouchPos.current.y) * sensitivity;
 

@@ -23,6 +23,9 @@ model Post {
   id        String   @id @default(cuid())
   title     String
   content   String
+  excerpt   String?
+  category  String?  @default("General")
+  imageUrl  String?
   published Boolean  @default(false)
   authorId  String
   author    User     @relation(fields: [authorId], references: [id])

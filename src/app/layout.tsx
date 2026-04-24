@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import "./globals.css";
+import { Providers } from "@/components/Providers";
 
 export const metadata: Metadata = {
   title: "Minecraft Web 1.12.2 - Play & Code",
@@ -19,10 +20,12 @@ export default function RootLayout({
   return (
     <html lang="vi">
       <body className="antialiased overflow-x-hidden min-h-screen">
-        <div className="fixed inset-0 bg-[url('https://www.minecraft.net/content/dam/games/minecraft/key-art/Minecraft-1.20-Trails-and-Tales-Update_KeyArt_1920x1080.jpg')] bg-cover bg-center brightness-[0.3] -z-10" />
-        <main className="relative z-0 min-h-screen">
-          {children}
-        </main>
+        <Providers>
+          <div className="fixed inset-0 bg-[url('https://www.minecraft.net/content/dam/games/minecraft/key-art/Minecraft-1.20-Trails-and-Tales-Update_KeyArt_1920x1080.jpg')] bg-cover bg-center brightness-[0.3] -z-10" />
+          <main className="relative z-0 min-h-screen">
+            {children}
+          </main>
+        </Providers>
       </body>
     </html>
   );

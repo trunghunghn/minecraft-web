@@ -11,21 +11,53 @@ export const SCRIPT_TEMPLATES: ScriptTemplate[] = [
     {
         id: "build-house",
         name: "Xây nhà gỗ thần tốc",
-        description: "Tạo một ngôi nhà gỗ cơ bản tại vị trí hiện tại của bạn.",
+        description: "Tạo một ngôi nhà gỗ hoàn chỉnh với cửa sổ và mái nhà tại vị trí của bạn.",
         icon: "🏠",
         category: "Building",
-        code: `// Tự động xây nhà gỗ
-function buildHouse() {
+        code: `// Script Xây nhà gỗ hiện đại (v1.12.2)
+function buildModernHouse() {
     const p = player.location;
-    // Móng nhà
-    world.fill(p.x-2, p.y-1, p.z-2, p.x+2, p.y-1, p.z+2, "oak_planks");
-    // Tường
-    world.fill(p.x-2, p.y, p.z-2, p.x+2, p.y+3, p.z-2, "oak_log");
-    world.fill(p.x-2, p.y, p.z+2, p.x+2, p.y+3, p.z+2, "oak_log");
-    // ... thêm logic khác
-    player.sendMessage("§aĐã xây xong nhà!");
+    const x = Math.floor(p.x);
+    const y = Math.floor(p.y);
+    const z = Math.floor(p.z);
+    
+    // 1. Móng và sàn (7x7)
+    world.fill(x-3, y-1, z-3, x+3, y-1, z+3, "cobblestone");
+    world.fill(x-2, y-1, z-2, x+2, y-1, z+2, "planks");
+    
+    // 2. Cột trụ 4 góc (Gỗ log cao 4 tầng)
+    world.fill(x-3, y, z-3, x-3, y+3, z-3, "log");
+    world.fill(x+3, y, z-3, x+3, y+3, z-3, "log");
+    world.fill(x-3, y, z+3, x-3, y+3, z+3, "log");
+    world.fill(x+3, y, z+3, x+3, y+3, z+3, "log");
+    
+    // 3. Tường gỗ (Planks)
+    world.fill(x-3, y, z-2, x-3, y+3, z+2, "planks"); // Trái
+    world.fill(x+3, y, z-2, x+3, y+3, z+2, "planks"); // Phải
+    world.fill(x-2, y, z-3, x+2, y+3, z-3, "planks"); // Sau
+    world.fill(x-2, y, z+3, x+2, y+3, z+3, "planks"); // Trước
+    
+    // 4. Kính cửa sổ
+    world.fill(x-3, y+1, z-1, x-3, y+2, z+1, "glass_pane"); // Cửa sổ trái
+    world.fill(x+3, y+1, z-1, x+3, y+2, z+1, "glass_pane"); // Cửa sổ phải
+    world.setBlock(x, y+2, z-3, "glass_pane"); // Cửa sổ sau
+    
+    // 5. Cửa ra vào (Mặt trước)
+    world.setBlock(x, y, z+3, "air");
+    world.setBlock(x, y+1, z+3, "air");
+    
+    // 6. Mái nhà (Sử dụng slab cho phẳng đẹp)
+    world.fill(x-4, y+4, z-4, x+4, y+4, z+4, "wooden_slab");
+    world.fill(x-3, y+4, z-3, x+3, y+4, z+3, "planks");
+    
+    // 7. Nội thất cơ bản (Đuốc + Giường + Crafting Table)
+    world.setBlock(x-2, y+2, z-2, "torch");
+    world.setBlock(x+2, y+2, z+2, "torch");
+    world.setBlock(x-2, y, z-2, "crafting_table");
+    
+    player.sendMessage("§a[AI] Đã xây xong nhà gỗ hiện đại cho bạn! Chúc bạn chơi vui vẻ.");
 }
-buildHouse();`
+buildModernHouse();`
     },
     {
         id: "midas-touch",

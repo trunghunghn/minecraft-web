@@ -1,10 +1,12 @@
 "use client";
 
+import { useSession, signOut } from "next-auth/react";
 import { motion } from "framer-motion";
-import { Play, Code, BookOpen, Users } from "lucide-react";
+import { Play, Code, BookOpen, Users, LogOut, User } from "lucide-react";
 import Link from "next/link";
 
 export default function Home() {
+  const { data: session } = useSession();
   const features = [
     {
       title: "Chơi Ngay 1.12.2",
@@ -35,17 +37,34 @@ export default function Home() {
   return (
     <div className="flex flex-col items-center justify-center min-h-screen p-4 relative">
       {/* Top Navigation */}
-      <div className="absolute top-6 right-6 flex gap-4 z-50">
-        <Link href="/auth/signin">
-          <button className="mc-button text-sm font-bold bg-[#bebebe] hover:bg-[#d0d0d0]">
-            ĐĂNG NHẬP
-          </button>
-        </Link>
-        <Link href="/register">
-          <button className="mc-button text-sm font-bold bg-green-600 !text-white !text-shadow-none hover:bg-green-500 border-green-400">
-            ĐĂNG KÝ
-          </button>
-        </Link>
+      <div className="absolute top-6 right-6 flex items-center gap-4 z-50">
+        {session ? (
+          <>
+            <div className="flex items-center gap-2 bg-black/40 px-4 py-2 rounded-lg border border-white/10 backdrop-blur-md">
+              <User size={16} className="text-green-500" />
+              <span className="text-white text-xs font-bold uppercase tracking-wider">{session.user?.name}</span>
+            </div>
+            <button 
+              onClick={() => signOut()}
+              className="mc-button !bg-red-900/50 hover:!bg-red-800 text-xs py-2 px-4 flex items-center gap-2"
+            >
+              <LogOut size={14} /> ĐĂNG XUẤT
+            </button>
+          </>
+        ) : (
+          <>
+            <Link href="/auth/signin">
+              <button className="mc-button text-sm font-bold bg-[#bebebe] hover:bg-[#d0d0d0]">
+                ĐĂNG NHẬP
+              </button>
+            </Link>
+            <Link href="/register">
+              <button className="mc-button text-sm font-bold bg-green-600 !text-white !text-shadow-none hover:bg-green-500 border-green-400">
+                ĐĂNG KÝ
+              </button>
+            </Link>
+          </>
+        )}
       </div>
 
       {/* Header Section */}

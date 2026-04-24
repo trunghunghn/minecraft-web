@@ -217,21 +217,32 @@
 
     <script type="text/javascript">
         "use strict";
+        const urlParams = new URLSearchParams(window.location.search);
+        const username = urlParams.get("username") || "Steve";
+        
+        const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) || (window.innerWidth < 800);
+        const mobileParam = urlParams.get("mobile");
+
         window.eaglercraftXOpts = {
             container: "game_frame",
             worldsDB: "worlds",
+            playerName: username,
             allowServerConfig: true,
             enableMultiplayer: true,
-            mobile: true,
+            allowLAN: true,
+            checkRelays: true,
+            forceIntegratedServer: true,
+            integratedServer: true,
+            mobile: mobileParam !== null ? (mobileParam === "true") : isMobile,
             relays: [
-                { addr: "wss://relay.deev.is/", name: "deev.is relay" },
-                { addr: "wss://relay.lax1dude.net/", name: "lax1dude relay" },
-                { addr: "wss://relay.shcminecraft.xyz/", name: "shcminecraft relay" },
-                { addr: "wss://relay.shcminecraft.com/", name: "shcminecraft relay 2" }
+                { addr: "wss://relay.webmc.fun/", name: "WebMC Relay (Stable)" },
+                { addr: "wss://relay.de0.cc/", name: "Official Relay #1" },
+                { addr: "wss://relay.lax1dude.net/", name: "Lax1dude Relay #2" },
+                { addr: "wss://relay.deev.is/", name: "Deev.is Relay" }
             ],
             mainMenu: {
-                splashes: ["LAN Support Enabled!", "Coding with AI!"],
-                brand: "EaglercraftX AI"
+                splashes: ["LAN Support Patched!", "Ready to Play!", "Eaglercraft 1.12.2"],
+                brand: "Minecraft Web"
             }
         };
     </script>
@@ -329,15 +340,20 @@
                 screenEl.style.opacity = "0";
                 setTimeout(function () { screenEl.style.display = "none"; }, 1000);
 
-                var assets = document.createElement("script");
-                assets.src = "assets-data.js";
-                assets.onload = function () {
-                    statusText.textContent = "Khởi động engine...";
-                    var engine = document.createElement("script");
-                    engine.src = "game-engine.js";
-                    document.body.appendChild(engine);
+                var patch = document.createElement("script");
+                patch.src = "game-engine.js?v=2";
+                patch.onload = function() {
+                    var assets = document.createElement("script");
+                    assets.src = "assets-data.js";
+                    assets.onload = function () {
+                        statusText.textContent = "Khởi động engine...";
+                        var engine = document.createElement("script");
+                        engine.src = "game.js";
+                        document.body.appendChild(engine);
+                    };
+                    document.body.appendChild(assets);
                 };
-                document.body.appendChild(assets);
+                document.body.appendChild(patch);
             }
 
             document.getElementById("skipCountdown").onclick = startGame;

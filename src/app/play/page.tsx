@@ -1,14 +1,16 @@
 "use client";
 
+import { useSession } from "next-auth/react";
 import { useState, useEffect } from "react";
 import ScriptEditor from "@/components/ScriptEditor";
 import SettingsModal from "@/components/SettingsModal";
 import MobileControls from "@/components/MobileControls";
-import { Hammer, Settings, ArrowLeft, Play, ExternalLink } from "lucide-react";
+import { Hammer, Settings, ArrowLeft, Play, ExternalLink, Zap } from "lucide-react";
 import Link from "next/link";
 import { motion } from "framer-motion";
 
 export default function PlayPage() {
+    const { data: session } = useSession();
     const [gameLaunched, setGameLaunched] = useState(false);
     const [activeTab, setActiveTab] = useState<"game" | "multiplayer">("game");
     const [mounted, setMounted] = useState(false);
@@ -183,61 +185,76 @@ export default function PlayPage() {
                             </motion.div>
                         </div>
                     ) : (
-                        <div className="flex-1 flex flex-col h-full w-full">
-                            {activeTab === "game" ? (
-                                <iframe
-                                    id="game-iframe"
-                                    src="/game/1.12.2/index.html"
-                                    className="w-full h-full border-none"
-                                    allow="autoplay; fullscreen; pointer-lock"
-                                />
-                            ) : (
-                                <div className="flex-1 p-8 overflow-y-auto bg-[#161616] text-gray-300">
-                                    <div className="max-w-3xl mx-auto space-y-8">
-                                        <div className="border-l-4 border-blue-600 pl-6 space-y-2">
+                        <div className="flex-1 flex flex-col h-full w-full relative">
+                            {/* Game Iframe - Always stays in DOM to receive messages */}
+                            <iframe
+                                id="game-iframe"
+                                src={`/game/1.12.2/play.html?username=${session?.user?.name || "Guest"}&mobile=${isMobile}`}
+                                className={`w-full h-full border-none ${activeTab === "game" ? "block" : "hidden"}`}
+                                allow="autoplay; fullscreen; pointer-lock"
+                            />
+
+                            {/* Instructions Overlay */}
+                            <div className={`flex-1 p-8 overflow-y-auto bg-[#161616] text-gray-300 ${activeTab === "multiplayer" ? "block" : "hidden"}`}>
+                                <div className="max-w-3xl mx-auto space-y-8">
+                                    <div className="border-l-4 border-blue-600 pl-6 space-y-4">
+                                        <div>
                                             <h2 className="text-3xl font-bold text-white uppercase tracking-tighter">Hướng dẫn chơi cùng bạn bè</h2>
                                             <p className="text-sm text-gray-500 italic font-mono">Tính năng &quot;Open to LAN&quot; hỗ trợ chơi qua mã Relay Join Code</p>
                                         </div>
+                                        
+                                        <button 
+                                            onClick={() => {
+                                                const iframe = document.getElementById('game-iframe') as HTMLIFrameElement;
+                                                if (iframe && iframe.contentWindow) {
+                                                    iframe.contentWindow.postMessage('FORCE_LAN_PATCH', '*');
+                                                }
+                                            }}
+                                            className="bg-orange-600 hover:bg-orange-500 text-white font-bold py-2 px-6 rounded-lg shadow-lg transition-all active:scale-95 flex items-center gap-2 text-sm uppercase"
+                                        >
+                                            <Zap size={16} fill="white" />
+                                            Kích hoạt LAN (Sửa lỗi nút bị xám)
+                                        </button>
+                                    </div>
 
-                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                                            <div className="bg-white/5 p-6 rounded-xl border border-white/5 space-y-4">
-                                                <div className="flex items-center gap-3">
-                                                    <div className="w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center font-bold text-white">1</div>
-                                                    <h3 className="font-bold text-white uppercase text-sm">Cho người chủ trì (Host)</h3>
-                                                </div>
-                                                <ul className="space-y-3 text-sm">
-                                                    <li className="flex gap-2"><span>•</span> <span>Vào một thế giới Singleplayer bất kỳ.</span></li>
-                                                    <li className="flex gap-2"><span>•</span> <span>Nhấn <b>ESC</b> và chọn <b>Open to LAN</b>.</span></li>
-                                                    <li className="flex gap-2"><span>•</span> <span>Chọn một Relay (ví dụ: <i>deev.is</i>) và nhấn <b>Open to LAN</b>.</span></li>
-                                                    <li className="flex gap-2"><span>•</span> <span>Sao chép <b>Join Code</b> xuất hiện trong chat.</span></li>
-                                                    <li className="flex gap-2"><span>•</span> <span className="text-blue-400 font-bold">Gửi mã này cho bạn bè của bạn!</span></li>
-                                                </ul>
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                                        <div className="bg-white/5 p-6 rounded-xl border border-white/5 space-y-4">
+                                            <div className="flex items-center gap-3">
+                                                <div className="w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center font-bold text-white">1</div>
+                                                <h3 className="font-bold text-white uppercase text-sm">Cho người chủ trì (Host)</h3>
                                             </div>
-
-                                            <div className="bg-white/5 p-6 rounded-xl border border-white/5 space-y-4">
-                                                <div className="flex items-center gap-3">
-                                                    <div className="w-8 h-8 bg-green-600 rounded-full flex items-center justify-center font-bold text-white">2</div>
-                                                    <h3 className="font-bold text-white uppercase text-sm">Cho người tham gia (Joiner)</h3>
-                                                </div>
-                                                <ul className="space-y-3 text-sm">
-                                                    <li className="flex gap-2"><span>•</span> <span>Vào menu <b>Multiplayer</b> từ màn hình chính.</span></li>
-                                                    <li className="flex gap-2"><span>•</span> <span>Nhấn vào nút <b>Direct Connect</b>.</span></li>
-                                                    <li className="flex gap-2"><span>•</span> <span>Dán <b>Join Code</b> bạn nhận được vào ô.</span></li>
-                                                    <li className="flex gap-2"><span>•</span> <span className="text-green-400 font-bold">Nhấn Join Server để bắt đầu!</span></li>
-                                                </ul>
-                                            </div>
+                                            <ul className="space-y-3 text-sm">
+                                                <li className="flex gap-2"><span>•</span> <span>Vào một thế giới Singleplayer bất kỳ.</span></li>
+                                                <li className="flex gap-2"><span>•</span> <span>Nhấn <b>ESC</b> và chọn <b>Open to LAN</b>.</span></li>
+                                                <li className="flex gap-2"><span>•</span> <span>Chọn một Relay (ví dụ: <i>deev.is</i>) và nhấn <b>Open to LAN</b>.</span></li>
+                                                <li className="flex gap-2"><span>•</span> <span>Sao chép <b>Join Code</b> xuất hiện trong chat.</span></li>
+                                                <li className="flex gap-2"><span>•</span> <span className="text-blue-400 font-bold">Gửi mã này cho bạn bè của bạn!</span></li>
+                                            </ul>
                                         </div>
 
-                                        <div className="bg-blue-900/20 border border-blue-500/30 p-4 rounded-lg flex gap-4 items-start">
-                                            <div className="text-2xl mt-1">💡</div>
-                                            <div>
-                                                <h4 className="font-bold text-blue-400 text-sm mb-1 uppercase">Mẹo nhỏ</h4>
-                                                <p className="text-xs leading-relaxed">Nếu không kết nối được, hãy thử đổi sang Relay server khác. Cả hai người chơi phải sử dụng cùng một mạng hoặc Relay ổn định để có trải nghiệm tốt nhất.</p>
+                                        <div className="bg-white/5 p-6 rounded-xl border border-white/5 space-y-4">
+                                            <div className="flex items-center gap-3">
+                                                <div className="w-8 h-8 bg-green-600 rounded-full flex items-center justify-center font-bold text-white">2</div>
+                                                <h3 className="font-bold text-white uppercase text-sm">Cho người tham gia (Joiner)</h3>
                                             </div>
+                                            <ul className="space-y-3 text-sm">
+                                                <li className="flex gap-2"><span>•</span> <span>Vào menu <b>Multiplayer</b> từ màn hình chính.</span></li>
+                                                <li className="flex gap-2"><span>•</span> <span>Nhấn vào nút <b>Direct Connect</b>.</span></li>
+                                                <li className="flex gap-2"><span>•</span> <span>Dán <b>Join Code</b> bạn nhận được vào ô.</span></li>
+                                                <li className="flex gap-2"><span>•</span> <span className="text-green-400 font-bold">Nhấn Join Server để bắt đầu!</span></li>
+                                            </ul>
+                                        </div>
+                                    </div>
+
+                                    <div className="bg-blue-900/20 border border-blue-500/30 p-4 rounded-lg flex gap-4 items-start">
+                                        <div className="text-2xl mt-1">💡</div>
+                                        <div>
+                                            <h4 className="font-bold text-blue-400 text-sm mb-1 uppercase">Mẹo nhỏ</h4>
+                                            <p className="text-xs leading-relaxed">Nếu không kết nối được, hãy thử đổi sang Relay server khác. Cả hai người chơi phải sử dụng cùng một mạng hoặc Relay ổn định để có trải nghiệm tốt nhất.</p>
                                         </div>
                                     </div>
                                 </div>
-                            )}
+                            </div>
                         </div>
                     )}
                 </div>
