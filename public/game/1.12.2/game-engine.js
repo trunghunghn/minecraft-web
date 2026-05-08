@@ -40,17 +40,25 @@
         return false;
     }
 
-    // Lắng nghe sự kiện
+    window.isLanPatchApplied = false;
+
     window.addEventListener('message', function(event) {
         if (event.data === 'FORCE_LAN_PATCH') {
-            applyPatch();
-            console.log("[LAN-Fix] Đã thực thi bản vá theo lệnh từ UI.");
-            // Thông báo nhẹ nhàng qua console để tránh block engine
-            console.log("%c[LAN-Fix] PATCH SUCCESSFUL!", "color: white; background: green; padding: 2px 5px; border-radius: 3px;");
+            if (applyPatch()) {
+                window.isLanPatchApplied = true;
+                console.log("%c[LAN-Fix] PATCH SUCCESSFUL!", "color: white; background: green; padding: 2px 5px; border-radius: 3px;");
+            }
         }
     });
 
-    // Chạy một lần duy nhất khi vừa nạp
-    applyPatch();
+    // Xuất hàm ra global
+    window.applyEaglercraftLanPatch = function() {
+        if (applyPatch()) {
+            window.isLanPatchApplied = true;
+            return true;
+        }
+        return false;
+    };
 
+    console.log("%c[LAN-Fix] Script nạp thành công. Chờ kích hoạt...", "color: #3498db; font-weight: bold;");
 })();
