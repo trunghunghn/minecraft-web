@@ -64,6 +64,8 @@
         window.eaglercraftXOpts = {
             container: "game_frame",
             worldsDB: "worlds",
+            resourcePacksDB: "resourcePacks",
+            assetsURI: "assets.epk",
             playerName: username,
             allowServerConfig: true,
             enableMultiplayer: true,
@@ -85,8 +87,11 @@
         };
 
         function logError(msg) {
-            document.getElementById("error-log").innerText = "Lỗi: " + msg;
-            console.error(msg);
+            const errLog = document.getElementById("error-log");
+            const div = document.createElement("div");
+            div.textContent = "> " + msg;
+            errLog.appendChild(div);
+            console.error("[Play Error]", msg);
         }
 
         // Pointer Lock Bridge
@@ -111,54 +116,107 @@
             const progress = document.getElementById("launchCountdownProgress");
             let launched = false;
 
-            function loadScript(src, onProgress, next) {
+            async function loadScript(src, onProgress, next) {
                 statusText.textContent = "Đang tải " + src + "...";
-                const s = document.createElement("script");
-                s.src = src + "?v=" + Date.now(); // Tránh cache
-                s.crossOrigin = "anonymous";
-                s.async = true;
-                s.onload = () => {
-                    progress.style.width = onProgress + "%";
-                    next();
-                };
-                s.onerror = () => logError("Không thể tải " + src);
-                document.body.appendChild(s);
+                try {
+                    if (src.includes("game.js")) {
+                        console.log("[Play] Đang tải game.js (31MB)...");
+                        const response = await fetch(src + "?v=" + Date.now());
+                        if (!response.ok) throw new Error("Không thể tải game.js");
+                        
+                        const text = await response.text();
+                        console.log("[Play] Đang trích xuất mã nguồn từ game.js...");
+                        
+                        // Trích xuất tất cả các khối mã trong thẻ <script> (vì game.js là file HTML trá hình)
+                        const scriptPattern = /<script[^>]*>([\s\S]*?)<\/script>/gi;
+                        let cleanCode = "";
+                        let match;
+                        while ((match = scriptPattern.exec(text)) !== null) {
+                            cleanCode += match[1] + "\n";
+                        }
+                        
+                        if (!cleanCode) {
+                            console.warn("[Play] Không tìm thấy thẻ script trong game.js, sử dụng toàn bộ nội dung file.");
+                            cleanCode = text;
+                        }
+
+                        const blob = new Blob([cleanCode], { type: "application/javascript" });
+                        const blobUrl = URL.createObjectURL(blob);
+                        
+                        const s = document.createElement("script");
+                        s.src = blobUrl;
+                        s.onload = () => {
+                            progress.style.width = onProgress + "%";
+                            URL.revokeObjectURL(blobUrl);
+                            console.log("[Play] Đã nạp xong game.js");
+                            next();
+                        };
+                        s.onerror = () => logError("Lỗi thực thi mã nguồn game.js");
+                        document.body.appendChild(s);
+                    } else {
+                        // Các script khác nạp bình thường qua thẻ script src
+                        const s = document.createElement("script");
+                        s.src = src + "?v=" + Date.now();
+                        s.crossOrigin = "anonymous";
+                        s.onload = () => {
+                            progress.style.width = onProgress + "%";
+                            next();
+                        };
+                        s.onerror = () => logError("Không thể tải " + src);
+                        document.body.appendChild(s);
+                    }
+                } catch (e) {
+                    console.error("[Play] Lỗi nạp script:", e);
+                    logError("Lỗi nạp script: " + src + " (" + e.message + ")");
+                }
             }
 
             function startGame() {
                 if (launched) return;
                 launched = true;
                 
-                // Chuỗi nạp script
+                // Chuỗi nạp script theo thứ tự
                 loadScript("game-engine.js", 30, () => {
                     loadScript("assets-data.js", 60, () => {
                         loadScript("game.js", 90, () => {
-                            statusText.textContent = "Đang cấu hình Engine...";
+                            statusText.textContent = "Đang khởi tạo Engine...";
+                            // Chờ một chút để engine parse xong
                             setTimeout(() => {
                                 try {
-                                    if (typeof main === "function") {
-                                        console.log("[Play] Khởi chạy engine...");
+                                    // Tìm điểm vào (entry point)
+                                    // Teavm thường xuất ra window.main hoặc window.$rt_exports.main
+                                    const entryPoint = window.main || (window.$rt_exports && window.$rt_exports.main);
+                                    
+                                    if (typeof entryPoint === "function") {
+                                        console.log("[Play] Đã tìm thấy điểm vào. Đang chuẩn bị khởi động...");
                                         
-                                        // Áp dụng bản vá LAN trước khi chạy main
+                                        // Áp dụng bản vá LAN (nếu có)
                                         if (typeof window.applyEaglercraftLanPatch === "function") {
-                                            console.log("[Play] Đang áp dụng bản vá LAN...");
                                             window.applyEaglercraftLanPatch();
                                         }
 
-                                        main();
+                                        // KHỞI CHẠY GAME
+                                        entryPoint();
                                         
                                         progress.style.width = "100%";
-                                        screenEl.style.opacity = "0";
-                                        setTimeout(() => screenEl.style.display = "none", 800);
-                                        console.log("[Play] Engine đã khởi động.");
+                                        statusText.textContent = "Sẵn sàng!";
+                                        
+                                        // Ẩn màn hình nạp
+                                        setTimeout(() => {
+                                            screenEl.style.opacity = "0";
+                                            setTimeout(() => screenEl.style.display = "none", 800);
+                                        }, 500);
                                     } else {
-                                        logError("Không tìm thấy hàm main() trong game.js");
+                                        console.error("[Play] LỖI: Không tìm thấy hàm main()!");
+                                        console.log("[Debug] window.main:", window.main);
+                                        console.log("[Debug] window.$rt_exports:", window.$rt_exports);
+                                        logError("Không thể tìm thấy hàm khởi động game. Vui lòng kiểm tra console.");
                                     }
                                 } catch(e) {
-                                    console.error("[Play] Lỗi khởi tạo:", e);
-                                    logError("Lỗi khởi tạo: " + e.message);
+                                    console.error("[Play] Lỗi khởi động game:", e);
+                                    logError("Lỗi khởi động: " + e.message);
                                 }
-                            }, 500);
+                            }, 1000);
                         });
                     });
                 });
@@ -168,8 +226,12 @@
             let count = 2;
             const timer = setInterval(() => {
                 count--;
-                if (count <= 0) { clearInterval(timer); startGame(); }
-                else { statusText.textContent = `Bắt đầu sau ${count}...`; }
+                if (count <= 0) { 
+                    clearInterval(timer); 
+                    startGame(); 
+                } else { 
+                    statusText.textContent = `Bắt đầu sau ${count}...`; 
+                }
             }, 1000);
         })();
     </script>
