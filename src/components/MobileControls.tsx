@@ -67,13 +67,10 @@ export default function MobileControls({ onKeyDown, onKeyUp, onOpenSettings, top
     const mousePos = useRef({ x: 100, y: 100 });
 
     // Helper: Gửi sự kiện vào game thông qua Bridge (postMessage)
-    const sendToBridge = (eventData: any) => {
+    const sendToBridge = (eventData: Record<string, unknown>) => {
         const iframe = document.getElementById('game-iframe') as HTMLIFrameElement;
         if (iframe && iframe.contentWindow) {
-            iframe.contentWindow.postMessage({
-                type: "dispatch-event",
-                event: eventData
-            }, "*");
+            iframe.contentWindow.postMessage(eventData, "*");
         }
     };
 
@@ -121,55 +118,21 @@ export default function MobileControls({ onKeyDown, onKeyUp, onOpenSettings, top
     }, []);
 
     const dispatchKeyEvent = (type: 'keydown' | 'keyup', key: string) => {
-        // Map common keys if needed (e.g., Space for Jump)
-        const eventKey = key === " " ? " " : key;
-        const eventCode = key === "w" ? "KeyW" :
-            key === "a" ? "KeyA" :
-                key === "s" ? "KeyS" :
-                    key === "d" ? "KeyD" :
-                        key === "e" ? "KeyE" :
-                            key === "t" ? "KeyT" :
-                                key === "Shift" ? "ShiftLeft" :
-                                    key === "Tab" ? "Tab" :
-                                        key === "Escape" ? "Escape" :
-                                            key === " " ? "Space" : key;
-
-        let eventKeyCode = 0;
-        if (key === " ") eventKeyCode = 32;
-        else if (key === "Escape") eventKeyCode = 27;
-        else if (key === "Tab") eventKeyCode = 9;
-        else if (key === "Shift") eventKeyCode = 16;
-        else if (key === "F1") eventKeyCode = 112;
-        else if (key === "F3") eventKeyCode = 114;
-        else if (key === "F5") eventKeyCode = 116;
-        else if (key.length === 1) eventKeyCode = key.toUpperCase().charCodeAt(0);
-
-        const eventInit = {
-            key: eventKey,
-            code: eventCode,
-            bubbles: true,
-            cancelable: true,
-            view: window,
-            keyCode: eventKeyCode
-        };
-
-        const event = new KeyboardEvent(type, eventInit);
+        // Gửi sự kiện cục bộ lên window để UI phản hồi (nếu cần)
+        const event = new KeyboardEvent(type, { key, bubbles: true });
         window.dispatchEvent(event);
 
-        const iframe = document.getElementById('game-iframe') as HTMLIFrameElement;
-        if (iframe && iframe.contentWindow) {
-            iframe.contentWindow.dispatchEvent(new KeyboardEvent(type, eventInit));
-        }
+        // Gọi callback để trang mẹ (PlayPage) xử lý gửi qua Bridge
+        if (type === 'keydown') onKeyDown?.(key);
+        else onKeyUp?.(key);
     };
 
     const handlePress = (key: string) => {
         dispatchKeyEvent('keydown', key);
-        if (onKeyDown) onKeyDown(key);
     };
 
     const handleRelease = (key: string) => {
         dispatchKeyEvent('keyup', key);
-        if (onKeyUp) onKeyUp(key);
     };
 
     const dispatchMouseEvent = (type: string, x: number, y: number, button: number = 0) => {
@@ -177,161 +140,39 @@ export default function MobileControls({ onKeyDown, onKeyUp, onOpenSettings, top
         if (!iframe) return;
 
         const iframeRect = iframe.getBoundingClientRect();
-        // Convert page coords to iframe-relative coords
         const iframeX = x - iframeRect.left;
         const iframeY = y - iframeRect.top;
-
         const buttons = type === 'mousedown' ? 1 : 0;
-        const detail = (type === 'click' || type === 'mousedown') ? 1 : 0;
 
-        const pointerTypeMap: Record<string, string> = {
-            'mousedown': 'pointerdown',
-            'mouseup': 'pointerup',
-            'mousemove': 'pointermove',
-            'click': 'click'
-        };
-        const pType = pointerTypeMap[type];
+        if (type === 'mousedown') {
+            setDebugDot({ x, y });
+        }
 
-        // Dispatch to iframe contentDocument (same-origin path)
-        try {
-            const iframeWin = iframe.contentWindow;
-            const iframeDoc = iframe.contentDocument;
-            if (iframeWin && iframeDoc) {
-                // Find the actual element at tap position.
-                // NOTE: elementFromPoint is very slow and causes lag if called on every mousemove.
-                let el: Element;
-                if (type === 'mousemove') {
-                    el = iframeDoc.querySelector('canvas') || iframeDoc.body;
-                } else {
-                    el = iframeDoc.elementFromPoint(iframeX, iframeY) || iframeDoc.body;
-                }
-
-                let finalClientX = iframeX;
-                let finalClientY = iframeY;
-                if (el.tagName === 'CANVAS') {
-                    const canvasEl = el as HTMLCanvasElement;
-                    const canvasRect = canvasEl.getBoundingClientRect();
-                    const scaleX = canvasEl.width / canvasRect.width;
-                    const scaleY = canvasEl.height / canvasRect.height;
-                    
-                    // LWJGL Eaglercraft engine mapping issue: we MUST pre-scale the coordinates
-                    finalClientX = iframeX * scaleX;
-                    finalClientY = iframeY * scaleY;
-                    
-                    if (type === 'mousedown') {
-                        setDebugDot({ x, y });
-                    }
-                }
-
-                const commonInit = {
-                    bubbles: true,
-                    cancelable: true,
-                    view: iframeWin,
-                    clientX: finalClientX,
-                    clientY: finalClientY,
-                    screenX: x,
-                    screenY: y,
-                    button: button,
-                    buttons,
-                    detail,
-                };
-                el.dispatchEvent(new MouseEvent(type, commonInit));
-                if (pType) {
-                    el.dispatchEvent(new PointerEvent(pType, {
-                        ...commonInit,
-                        pointerId: 1,
-                        isPrimary: true,
-                        pointerType: 'mouse',
-                        pressure: buttons > 0 ? 0.5 : 0,
-                    }));
-                }
-                
-                // CŨNG gửi qua bridge để đảm bảo engine nhận được (nhất là movementX/Y)
-                sendToBridge({
-                    category: 'mouse',
-                    type,
-                    clientX: finalClientX,
-                    clientY: finalClientY,
-                    screenX: x,
-                    screenY: y,
-                    button,
-                    buttons,
-                    movementX: 0,
-                    movementY: 0
-                });
-                return;
-            }
-        } catch (_) { /* cross-origin fallback below */ }
-
-        // Cross-origin fallback: dispatch on the iframe element itself at page coords
-        const target = targetRef.current || iframe;
-        const fallbackInit = {
-            bubbles: true,
-            cancelable: true,
-            view: window as Window & typeof globalThis,
-            clientX: x,
-            clientY: y,
+        // Gửi qua bridge - cách duy nhất hoạt động ổn định (tránh cross-origin)
+        sendToBridge({
+            type,
+            clientX: iframeX,
+            clientY: iframeY,
             screenX: x,
             screenY: y,
             button,
             buttons,
-            detail,
-        };
-        target.dispatchEvent(new MouseEvent(type, fallbackInit));
-        if (pType) {
-            target.dispatchEvent(new PointerEvent(pType, {
-                ...fallbackInit,
-                pointerId: 1,
-                isPrimary: true,
-                pointerType: 'mouse',
-                pressure: buttons > 0 ? 0.5 : 0,
-            }));
-        }
+            movementX: 0,
+            movementY: 0
+        });
     };
 
     const dispatchMovementEvent = (dx: number, dy: number) => {
-        const iframe = document.getElementById('game-iframe') as HTMLIFrameElement;
-        
-        const eventInit = {
-            bubbles: true,
-            cancelable: true,
-            clientX: mousePos.current.x,
-            clientY: mousePos.current.y,
-            movementX: dx,
-            movementY: dy,
-            button: -1,
-            buttons: 0,
-        };
-
-        // 1. ƯU TIÊN: Gửi qua bridge (Đây là cách ổn định nhất cho camera rotation)
+        // Gửi qua bridge - cách duy nhất ổn định cho camera rotation
         sendToBridge({
-            category: 'mouse',
             type: 'mousemove',
             clientX: mousePos.current.x,
             clientY: mousePos.current.y,
             movementX: dx,
             movementY: dy,
-            button: -1,
+            button: 0,
             buttons: 0
         });
-
-        // 2. PHỤ: Dispatch trực tiếp vào main window
-        window.dispatchEvent(new MouseEvent('mousemove', eventInit));
-
-        if (!iframe) return;
-
-        // 3. PHỤ: Thử can thiệp sâu vào DOM nếu cùng origin
-        try {
-            const iframeWin = iframe.contentWindow;
-            const iframeDoc = iframe.contentDocument;
-            
-            if (iframeWin && iframeDoc) {
-                const targetEl = iframeDoc.querySelector('canvas') || iframeDoc.body;
-                const mouseEvent = new MouseEvent('mousemove', { ...eventInit, view: iframeWin });
-                targetEl.dispatchEvent(mouseEvent);
-                iframeDoc.dispatchEvent(mouseEvent);
-            }
-        } catch (_) { /* Ignored */ }
     };
 
 

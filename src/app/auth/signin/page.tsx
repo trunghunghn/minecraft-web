@@ -3,7 +3,7 @@
 import { signIn } from "next-auth/react";
 import { ArrowLeft, Chrome, Mail, Lock } from "lucide-react";
 import Link from "next/link";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 
 export default function SignInPage() {
@@ -14,14 +14,14 @@ export default function SignInPage() {
   const router = useRouter();
   const [success, setSuccess] = useState(false);
 
-  useState(() => {
+  useEffect(() => {
     if (typeof window !== "undefined") {
       const urlParams = new URLSearchParams(window.location.search);
       if (urlParams.get("registered")) {
         setSuccess(true);
       }
     }
-  });
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

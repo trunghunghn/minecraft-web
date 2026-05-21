@@ -5,234 +5,316 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=1.0, maximum-scale=1.0">
     <title>Minecraft 1.12.2 - Playing</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
     <style>
+        :root {
+            --primary: #22c55e;
+            --bg-dark: #0a0a0b;
+            --glass: rgba(255, 255, 255, 0.03);
+            --glass-border: rgba(255, 255, 255, 0.08);
+        }
+
         * { margin: 0; padding: 0; box-sizing: border-box; }
-        body, html { width: 100%; height: 100%; overflow: hidden; background: #000; touch-action: none; }
-        #game_frame { width: 100%; height: 100%; position: absolute; top: 0; left: 0; z-index: 1; }
+        
+        body, html { 
+            width: 100%; height: 100%; overflow: hidden; 
+            background: var(--bg-dark); 
+            font-family: 'Inter', sans-serif;
+            color: white;
+            touch-action: none;
+        }
+
+        #game_frame { 
+            width: 100%; height: 100%; position: absolute; 
+            top: 0; left: 0; z-index: 1; 
+        }
         
         #back-btn {
-            position: fixed; top: 10px; right: 10px; z-index: 100001;
-            background: rgba(0, 0, 0, 0.6); color: white; border: 1px solid rgba(255, 255, 255, 0.2);
-            padding: 8px 16px; border-radius: 8px; cursor: pointer; font-size: 13px;
-            backdrop-filter: blur(5px); transition: all 0.2s; font-family: sans-serif;
+            position: fixed; top: 20px; right: 20px; z-index: 1000;
+            background: rgba(255, 255, 255, 0.05); 
+            color: white; 
+            border: 1px solid var(--glass-border);
+            padding: 10px 20px; border-radius: 12px; cursor: pointer; 
+            font-size: 13px; font-weight: 600;
+            backdrop-filter: blur(10px); transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        #back-btn:hover {
+            background: rgba(255, 255, 255, 0.1);
+            transform: translateY(-2px);
         }
 
         #launch_countdown_screen {
             position: fixed; inset: 0; display: flex; align-items: center; justify-content: center;
-            background: #0a0a0a; z-index: 100005; transition: opacity 0.8s ease-out;
+            background: radial-gradient(circle at center, #111827 0%, #000 100%);
+            z-index: 2000; transition: opacity 1s cubic-bezier(0.4, 0, 0.2, 1);
         }
 
-        .loader-content { text-align: center; color: white; font-family: sans-serif; width: 80%; max-width: 400px; }
-        #status-text { font-size: 14px; color: #aaa; margin: 10px 0; min-height: 20px; }
+        .loader-card {
+            background: var(--glass);
+            backdrop-filter: blur(40px);
+            border: 1px solid var(--glass-border);
+            padding: 60px;
+            border-radius: 40px;
+            text-align: center;
+            width: 90%;
+            max-width: 460px;
+            box-shadow: 0 40px 100px -20px rgba(0, 0, 0, 0.8);
+        }
+
+        h1 {
+            font-size: 32px; font-weight: 800; letter-spacing: -1px;
+            margin-bottom: 8px;
+            background: linear-gradient(135deg, #fff 0%, #64748b 100%);
+            -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+        }
+
+        #status-text {
+            font-size: 15px; color: #94a3b8; margin: 24px 0 12px;
+            font-weight: 500;
+        }
         
-        .progress-container {
-            width: 100%; height: 6px; background: rgba(255, 255, 255, 0.1);
-            border-radius: 3px; overflow: hidden; margin: 20px 0;
+        .progress-bar {
+            width: 100%; height: 8px; background: rgba(255, 255, 255, 0.05);
+            border-radius: 10px; overflow: hidden; margin-bottom: 32px;
+            border: 1px solid rgba(255, 255, 255, 0.05);
         }
 
-        #launchCountdownProgress { height: 100%; background: #22c55e; width: 0%; transition: width 0.4s ease; }
-        #skipCountdown {
-            background: #333; color: white; padding: 10px 20px; border-radius: 6px;
-            border: none; cursor: pointer; font-size: 14px;
+        #progress-fill {
+            height: 100%; background: linear-gradient(90deg, #22c55e, #4ade80);
+            width: 0%; transition: width 0.6s cubic-bezier(0.22, 1, 0.36, 1);
+            box-shadow: 0 0 20px rgba(34, 197, 94, 0.4);
         }
-        #error-log { color: #ff4444; font-size: 12px; margin-top: 15px; font-family: monospace; }
+
+        #start-btn {
+            display: none;
+            margin-top: 16px;
+            background: #22c55e;
+            color: white;
+            border: none;
+            padding: 12px 32px;
+            border-radius: 12px;
+            font-size: 14px;
+            font-weight: 700;
+            cursor: pointer;
+            font-family: 'Inter', sans-serif;
+            transition: background 0.2s;
+        }
+        #start-btn:hover { background: #16a34a; }
+
+        #error-log {
+            margin-top: 16px; text-align: left;
+            font-family: 'JetBrains Mono', monospace; font-size: 11px;
+            color: #ef4444; background: rgba(239, 68, 68, 0.05);
+            padding: 12px; border-radius: 12px;
+            display: none; border: 1px solid rgba(239, 68, 68, 0.1);
+        }
     </style>
 </head>
 
 <body>
     <div id="game_frame"></div>
-    <button id="back-btn" onclick="history.back()">✕ Thoát</button>
+    <button id="back-btn" onclick="location.href='login.html'">✕ Thoát Game</button>
 
     <div id="launch_countdown_screen">
-        <div class="loader-content">
-            <h1 style="letter-spacing: 2px;">MINECRAFT 1.12.2</h1>
-            <p id="status-text">Đang chuẩn bị...</p>
-            <div class="progress-container">
-                <div id="launchCountdownProgress"></div>
+        <div class="loader-card">
+            <h1>MINECRAFT 1.12.2</h1>
+            <p id="status-text">Đang tải tài nguyên...</p>
+            <div class="progress-bar">
+                <div id="progress-fill"></div>
             </div>
-            <button id="skipCountdown">Bắt đầu ngay</button>
+            <button id="start-btn" onclick="window._manualStart && window._manualStart()">Bắt đầu ngay</button>
             <div id="error-log"></div>
         </div>
     </div>
 
     <script type="text/javascript">
-        "use strict";
-        const urlParams = new URLSearchParams(window.location.search);
-        const username = urlParams.get("username") || "Steve";
-        const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) || (window.innerWidth < 1024);
-
-        window.eaglercraftXOpts = {
-            container: "game_frame",
-            worldsDB: "worlds",
-            resourcePacksDB: "resourcePacks",
-            assetsURI: "assets.epk",
-            playerName: username,
-            allowServerConfig: true,
-            enableMultiplayer: true,
-            allowLAN: true,
-            checkRelays: true,
-            forceIntegratedServer: true,
-            integratedServer: true,
-            mobile: urlParams.get("mobile") === "true" || isMobile,
-            relays: [
-                { addr: "wss://relay.webmc.fun/", name: "WebMC Relay (Stable)" },
-                { addr: "wss://relay.de0.cc/", name: "Official Relay #1" },
-                { addr: "wss://relay.lax1dude.net/", name: "Lax1dude Relay #2" },
-                { addr: "wss://relay.deev.is/", name: "Deev.is Relay" }
-            ],
-            mainMenu: {
-                splashes: ["Ready to Play!", "Eaglercraft 1.12.2"],
-                brand: "Minecraft Web"
-            }
-        };
-
-        function logError(msg) {
-            const errLog = document.getElementById("error-log");
-            const div = document.createElement("div");
-            div.textContent = "> " + msg;
-            errLog.appendChild(div);
-            console.error("[Play Error]", msg);
-        }
-
-        // Pointer Lock Bridge
-        (function() {
-            let virtualLock = false;
-            window.addEventListener('message', e => {
-                if(e.data.type === 'set-virtual-lock') {
-                    virtualLock = !!e.data.value;
-                    document.dispatchEvent(new Event('pointerlockchange'));
-                }
-            });
-            Object.defineProperty(document, 'pointerLockElement', {
-                get: () => virtualLock ? document.getElementById('game_frame') : null
-            });
-        })();
-    </script>
-
-    <script type="text/javascript">
         (function () {
             const screenEl = document.getElementById("launch_countdown_screen");
             const statusText = document.getElementById("status-text");
-            const progress = document.getElementById("launchCountdownProgress");
-            let launched = false;
+            const progressFill = document.getElementById("progress-fill");
+            const errorLog = document.getElementById("error-log");
 
-            async function loadScript(src, onProgress, next) {
-                statusText.textContent = "Đang tải " + src + "...";
-                try {
-                    if (src.includes("game.js")) {
-                        console.log("[Play] Đang tải game.js (31MB)...");
-                        const response = await fetch(src + "?v=" + Date.now());
-                        if (!response.ok) throw new Error("Không thể tải game.js");
-                        
-                        const text = await response.text();
-                        console.log("[Play] Đang trích xuất mã nguồn từ game.js...");
-                        
-                        // Trích xuất tất cả các khối mã trong thẻ <script> (vì game.js là file HTML trá hình)
-                        const scriptPattern = /<script[^>]*>([\s\S]*?)<\/script>/gi;
-                        let cleanCode = "";
-                        let match;
-                        while ((match = scriptPattern.exec(text)) !== null) {
-                            cleanCode += match[1] + "\n";
-                        }
-                        
-                        if (!cleanCode) {
-                            console.warn("[Play] Không tìm thấy thẻ script trong game.js, sử dụng toàn bộ nội dung file.");
-                            cleanCode = text;
-                        }
+            const urlParams = new URLSearchParams(window.location.search);
+            const username = urlParams.get('username') || "Steve" + Math.floor(Math.random() * 100);
+            const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) || (window.innerWidth < 1024);
 
-                        const blob = new Blob([cleanCode], { type: "application/javascript" });
-                        const blobUrl = URL.createObjectURL(blob);
-                        
-                        const s = document.createElement("script");
-                        s.src = blobUrl;
-                        s.onload = () => {
-                            progress.style.width = onProgress + "%";
-                            URL.revokeObjectURL(blobUrl);
-                            console.log("[Play] Đã nạp xong game.js");
-                            next();
-                        };
-                        s.onerror = () => logError("Lỗi thực thi mã nguồn game.js");
-                        document.body.appendChild(s);
-                    } else {
-                        // Các script khác nạp bình thường qua thẻ script src
-                        const s = document.createElement("script");
-                        s.src = src + "?v=" + Date.now();
-                        s.crossOrigin = "anonymous";
-                        s.onload = () => {
-                            progress.style.width = onProgress + "%";
-                            next();
-                        };
-                        s.onerror = () => logError("Không thể tải " + src);
-                        document.body.appendChild(s);
-                    }
-                } catch (e) {
-                    console.error("[Play] Lỗi nạp script:", e);
-                    logError("Lỗi nạp script: " + src + " (" + e.message + ")");
+            // Cấu hình chuẩn EaglercraftX
+            window.eaglercraftXOpts = {
+                container: "game_frame",
+                assetsURI: "assets.epk",
+                localesURI: "lang/",
+                worldsDB: "worlds",
+                playerName: username,
+                enableMultiplayer: true,
+                allowServerConfig: true,
+                allowLAN: true,
+                checkRelays: true,
+                forceIntegratedServer: true,
+                integratedServer: true,
+                mobile: urlParams.get("mobile") === "true" || isMobile,
+                relays: [
+                    { addr: "wss://relay.webmc.fun/", name: "WebMC Relay (Stable)" },
+                    { addr: "wss://relay.de0.cc/", name: "Official Relay #1" },
+                    { addr: "wss://relay.lax1dude.net/", name: "Lax1dude Relay #2" },
+                    { addr: "wss://relay.deev.is/", name: "Deev.is Relay" }
+                ],
+                mainMenu: {
+                    splashes: ["Ready to Play!", "Eaglercraft 1.12.2"],
+                    brand: "Minecraft Web"
                 }
+            };
+
+            const scripts = [
+                { src: "assets-data.js", weight: 35, status: "Đang tải dữ liệu trò chơi..." },
+                { src: "game-engine.js", weight: 10, status: "Đang nạp bản vá LAN..." },
+                { src: "game.js", weight: 55, status: "Đang khởi động Minecraft..." }
+            ];
+
+            let currentProgress = 0;
+
+            function logError(msg) {
+                errorLog.style.display = "block";
+                const div = document.createElement("div");
+                div.textContent = "> " + msg;
+                errorLog.appendChild(div);
+                console.error("[Play]", msg);
             }
 
-            function startGame() {
-                if (launched) return;
-                launched = true;
+            function loadNextScript(index) {
+                if (index >= scripts.length) {
+                    finalize();
+                    return;
+                }
+
+                const script = scripts[index];
+                statusText.textContent = `${script.status} (${Math.round(currentProgress)}%)`;
+
+                const s = document.createElement("script");
+                s.src = script.src + "?v=" + Date.now();
+                s.async = false;
                 
-                // Chuỗi nạp script theo thứ tự
-                loadScript("game-engine.js", 30, () => {
-                    loadScript("assets-data.js", 60, () => {
-                        loadScript("game.js", 90, () => {
-                            statusText.textContent = "Đang khởi tạo Engine...";
-                            // Chờ một chút để engine parse xong
-                            setTimeout(() => {
-                                try {
-                                    // Tìm điểm vào (entry point)
-                                    // Teavm thường xuất ra window.main hoặc window.$rt_exports.main
-                                    const entryPoint = window.main || (window.$rt_exports && window.$rt_exports.main);
-                                    
-                                    if (typeof entryPoint === "function") {
-                                        console.log("[Play] Đã tìm thấy điểm vào. Đang chuẩn bị khởi động...");
-                                        
-                                        // Áp dụng bản vá LAN (nếu có)
-                                        if (typeof window.applyEaglercraftLanPatch === "function") {
-                                            window.applyEaglercraftLanPatch();
-                                        }
+                s.onload = () => {
+                    currentProgress += script.weight;
+                    progressFill.style.width = currentProgress + "%";
+                    console.log(`[Loader] Đã nạp: ${script.src}`);
+                    loadNextScript(index + 1);
+                };
 
-                                        // KHỞI CHẠY GAME
-                                        entryPoint();
-                                        
-                                        progress.style.width = "100%";
-                                        statusText.textContent = "Sẵn sàng!";
-                                        
-                                        // Ẩn màn hình nạp
-                                        setTimeout(() => {
-                                            screenEl.style.opacity = "0";
-                                            setTimeout(() => screenEl.style.display = "none", 800);
-                                        }, 500);
-                                    } else {
-                                        console.error("[Play] LỖI: Không tìm thấy hàm main()!");
-                                        console.log("[Debug] window.main:", window.main);
-                                        console.log("[Debug] window.$rt_exports:", window.$rt_exports);
-                                        logError("Không thể tìm thấy hàm khởi động game. Vui lòng kiểm tra console.");
-                                    }
-                                } catch(e) {
-                                    console.error("[Play] Lỗi khởi động game:", e);
-                                    logError("Lỗi khởi động: " + e.message);
-                                }
-                            }, 1000);
-                        });
-                    });
-                });
+                s.onerror = () => {
+                    logError(`Không thể tải ${script.src}. Vui lòng reload trang.`);
+                    statusText.textContent = "LỖI TẢI TÀI NGUYÊN";
+                    statusText.style.color = "#ef4444";
+                };
+
+                document.body.appendChild(s);
             }
 
-            document.getElementById("skipCountdown").onclick = startGame;
-            let count = 2;
-            const timer = setInterval(() => {
-                count--;
-                if (count <= 0) { 
-                    clearInterval(timer); 
-                    startGame(); 
-                } else { 
-                    statusText.textContent = `Bắt đầu sau ${count}...`; 
+            const startBtn = document.getElementById('start-btn');
+
+            function hideLoader() {
+                screenEl.style.opacity = '0';
+                setTimeout(() => { screenEl.style.display = 'none'; }, 1000);
+            }
+
+            function finalize() {
+                statusText.textContent = "Sẵn sàng! Đang khởi tạo...";
+                progressFill.style.width = "100%";
+
+                // Áp dụng patch LAN từ game-engine.js (nếu có)
+                if (typeof window.applyEaglercraftLanPatch === 'function') {
+                    try { window.applyEaglercraftLanPatch(); } catch(e) {}
                 }
-            }, 1000);
+                
+                // Hiển thị nút bắt đầu thủ công
+                if (startBtn) startBtn.style.display = 'inline-block';
+
+                // Định nghĩa hàm để nút onclick gọi
+                window._manualStart = hideLoader;
+
+                // EaglercraftX tự khởi động sau khi scripts load xong
+                // Tự động ẩn loading screen sau 5 giây
+                setTimeout(hideLoader, 5000);
+            }
+
+            // Pointer Lock Bridge
+            (function() {
+                let virtualLock = false;
+                window.addEventListener('message', e => {
+                    if(e.data.type === 'set-virtual-lock') {
+                        virtualLock = !!e.data.value;
+                        document.dispatchEvent(new Event('pointerlockchange'));
+                    }
+                });
+                Object.defineProperty(document, 'pointerLockElement', {
+                    get: () => virtualLock ? document.getElementById('game_frame') : null
+                });
+            })();
+
+            // Khởi động khi trang đã nạp
+            window.addEventListener('load', () => {
+                console.log("[Play] Khởi động phiên làm việc: ", username);
+                loadNextScript(0);
+            });
+
+            // Ngăn chặn thoát trang vô ý
+            window.addEventListener('keydown', e => {
+                if (e.key === 'Backspace' && (e.target === document.body || e.target.tagName === 'CANVAS')) {
+                    e.preventDefault();
+                }
+            });
+
+            // Lắng nghe lệnh từ trang mẹ (Next.js)
+            window.addEventListener('message', (event) => {
+                const data = event.data;
+                if (!data) return;
+
+                // 1. Xử lý giả lập phím bấm (Cho Mobile)
+                if (data.type === 'key-down' || data.type === 'key-up') {
+                    const eventType = data.type === 'key-down' ? 'keydown' : 'keyup';
+                    const keyEvent = new KeyboardEvent(eventType, {
+                        key: data.key,
+                        code: data.code,
+                        keyCode: data.keyCode,
+                        which: data.keyCode,
+                        bubbles: true,
+                        cancelable: true
+                    });
+                    document.dispatchEvent(keyEvent);
+                    // Một số game engine lắng nghe trên window hoặc canvas
+                    window.dispatchEvent(keyEvent);
+                    const canvas = document.querySelector('canvas');
+                    if (canvas) canvas.dispatchEvent(keyEvent);
+                }
+
+                // 2. Xử lý thực thi Script
+                if (data.type === 'execute-script') {
+                    try {
+                        // Thực thi code trong một context an toàn (nếu có thể)
+                        // Ở đây chúng ta sử dụng eval để demo khả năng mở rộng
+                        const result = eval(data.code);
+                        window.parent.postMessage({ 
+                            type: 'script-executed', 
+                            status: 'success',
+                            result: result 
+                        }, '*');
+                    } catch (err) {
+                        window.parent.postMessage({ 
+                            type: 'script-executed', 
+                            status: 'error', 
+                            message: err.message 
+                        }, '*');
+                    }
+                }
+
+                // 3. Patch LAN (Sửa lỗi nút bị xám)
+                if (data === 'FORCE_LAN_PATCH') {
+                    if (typeof window.applyEaglercraftLanPatch === 'function') {
+                        window.applyEaglercraftLanPatch();
+                        console.log("[Bridge] LAN Patch applied!");
+                    }
+                }
+            });
         })();
     </script>
 </body>

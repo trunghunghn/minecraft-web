@@ -10,7 +10,8 @@ const nextConfig: NextConfig = {
   async headers() {
     return [
       {
-        // Headers cho game files - giữ nguyên config gốc hoạt động
+        // Game files: cần COOP + COEP để Eaglercraft có thể dùng SharedArrayBuffer
+        // postMessage vẫn hoạt động giữa same-origin pages dù có COOP/COEP
         source: "/game/:path*",
         headers: [
           {
@@ -24,6 +25,10 @@ const nextConfig: NextConfig = {
           {
             key: "Cross-Origin-Resource-Policy",
             value: "same-origin",
+          },
+          {
+            key: "Cross-Origin-Allow-Origin",
+            value: "*",
           },
         ],
       },

@@ -2,7 +2,6 @@
 
 import { prisma } from "@/lib/prisma";
 import { scryptSync, randomBytes } from "crypto";
-import { signIn } from "@/auth";
 
 export async function signUp(formData: FormData) {
     const email = formData.get("email") as string;

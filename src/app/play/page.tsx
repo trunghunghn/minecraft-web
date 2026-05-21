@@ -34,8 +34,59 @@ export default function PlayPage() {
         };
     }, []);
 
-    const handleKeyDown = (key: string) => { };
-    const handleKeyUp = (key: string) => { };
+    const handleKeyDown = (key: string) => { 
+        const iframe = document.getElementById("game-iframe") as HTMLIFrameElement;
+        if (iframe && iframe.contentWindow) {
+            // Chuyển đổi key thành mã phím chuẩn
+            let keyCode = 0;
+            let code = "";
+            
+            const k = key.toLowerCase();
+            if (k === "w") { keyCode = 87; code = "KeyW"; }
+            else if (k === "a") { keyCode = 65; code = "KeyA"; }
+            else if (k === "s") { keyCode = 83; code = "KeyS"; }
+            else if (k === "d") { keyCode = 68; code = "KeyD"; }
+            else if (k === " ") { keyCode = 32; code = "Space"; }
+            else if (k === "shift") { keyCode = 16; code = "ShiftLeft"; }
+            else if (k === "e") { keyCode = 69; code = "KeyE"; }
+            else if (k === "escape") { keyCode = 27; code = "Escape"; }
+            else if (k === "tab") { keyCode = 9; code = "Tab"; }
+            else if (k === "f5") { keyCode = 116; code = "F5"; }
+            else if (k === "f3") { keyCode = 114; code = "F3"; }
+            else if (k === "t") { keyCode = 84; code = "KeyT"; }
+
+            iframe.contentWindow.postMessage({
+                type: "key-down",
+                key: key,
+                code: code,
+                keyCode: keyCode
+            }, "*");
+        }
+    };
+
+    const handleKeyUp = (key: string) => { 
+        const iframe = document.getElementById("game-iframe") as HTMLIFrameElement;
+        if (iframe && iframe.contentWindow) {
+            let keyCode = 0;
+            let code = "";
+            
+            const k = key.toLowerCase();
+            if (k === "w") { keyCode = 87; code = "KeyW"; }
+            else if (k === "a") { keyCode = 65; code = "KeyA"; }
+            else if (k === "s") { keyCode = 83; code = "KeyS"; }
+            else if (k === "d") { keyCode = 68; code = "KeyD"; }
+            else if (k === " ") { keyCode = 32; code = "Space"; }
+            else if (k === "shift") { keyCode = 16; code = "ShiftLeft"; }
+            else if (k === "e") { keyCode = 69; code = "KeyE"; }
+
+            iframe.contentWindow.postMessage({
+                type: "key-up",
+                key: key,
+                code: code,
+                keyCode: keyCode
+            }, "*");
+        }
+    };
 
     const [consoleMessage, setConsoleMessage] = useState<string>("");
     const [consoleType, setConsoleType] = useState<"info" | "success" | "error">("info");
@@ -68,8 +119,44 @@ export default function PlayPage() {
                 type: "execute-script",
                 code: code
             }, "*");
+            
+            setConsoleMessage("Đang thực thi script...");
+            setConsoleType("info");
         } else {
-            alert("Game chưa được khởi động trong trang này!");
+            setConsoleMessage("Lỗi: Game chưa được khởi động!");
+            setConsoleType("error");
+        }
+    };
+
+    const handleSaveScript = async (code: string) => {
+        if (!session) {
+            setConsoleMessage("Bạn cần đăng nhập để lưu script!");
+            setConsoleType("error");
+            return;
+        }
+
+        setConsoleMessage("Đang lưu script...");
+        setConsoleType("info");
+
+        try {
+            const response = await fetch("/api/scripts", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    name: `Script_${new Date().toLocaleTimeString()}`,
+                    code: code,
+                })
+            });
+
+            if (response.ok) {
+                setConsoleMessage("Đã lưu script thành công vào tài khoản!");
+                setConsoleType("success");
+            } else {
+                throw new Error("Lỗi API");
+            }
+        } catch (error) {
+            setConsoleMessage("Không thể lưu script. Vui lòng thử lại.");
+            setConsoleType("error");
         }
     };
 
@@ -264,6 +351,7 @@ export default function PlayPage() {
                     <div className="w-[450px] lg:w-[600px] flex-shrink-0 border-l border-white/10 flex flex-col bg-[#1e1e1e]">
                         <ScriptEditor
                             onRun={handleRunScript}
+                            onSave={handleSaveScript}
                             consoleMessage={consoleMessage}
                             consoleType={consoleType}
                         />
