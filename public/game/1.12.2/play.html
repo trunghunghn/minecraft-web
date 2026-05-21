@@ -95,18 +95,10 @@
             display: none; border: 1px solid rgba(239, 68, 68, 0.1);
         }
 
-        /* An hoan toan man hinh countdown goc cua game.js ma khong lam crash engine */
-        #launch_countdown_screen {
-            position: absolute;
-            opacity: 0;
-            pointer-events: none;
-            z-index: -100;
-        }
     </style>
 </head>
 
-<body>
-    <div id="game_frame"></div>
+<body id="game_frame" style="margin:0;width:100%;height:100%;overflow:hidden;background-color:#121212;">
     <button id="back-btn" onclick="location.href='login.html'">&#x2715; Thoat Game</button>
 
     <!-- Man hinh loading cua chung ta -->
@@ -122,15 +114,18 @@
     </div>
 
     <!--
-        DOM elements ma game.js can de khoi dong.
-        game.js tim kiems: launchCountdownNumber, launchCountdownProgress, skipCountdown
-        CSS #launch_countdown_screen { display: none } se an chung khoi user nhung
-        chung van ton tai trong DOM de game.js co the truy cap.
+        DOM elements ma game.js can de khoi dong - PHAI la con truc tiep cua body (game_frame).
+        Game engine goi document.body.removeChild(launch_countdown_screen) roi goi main().
+        Neu khong phai con truc tiep cua body se bi crash!
     -->
-    <div id="launch_countdown_screen">
-        <span id="launchCountdownNumber">6</span>
-        <div id="launchCountdownProgress" style="width:0%"></div>
-        <button id="skipCountdown">Skip</button>
+    <div style="margin:0px;width:100%;height:100%;font-family:sans-serif;display:flex;align-items:center;user-select:none;opacity:0;position:absolute;pointer-events:none;z-index:-100;" id="launch_countdown_screen">
+        <div style="margin:auto;text-align:center;color:#FFFFFF;">
+            <h2>Game will launch in <span id="launchCountdownNumber">5</span>...</h2>
+            <div style="border:2px solid #FFFFFF;width:100%;height:15px;padding:1px;margin-bottom:20vh;">
+                <div id="launchCountdownProgress" style="background-color:#555555;width:0%;height:100%;"></div>
+            </div>
+            <button id="skipCountdown" autofocus style="padding:10px 20px;font-size:1rem;color:#FFFFFF;background-color:#333333;border:none;cursor:pointer;border-radius:5px;">Skip</button>
+        </div>
     </div>
 
     <script type="text/javascript">
