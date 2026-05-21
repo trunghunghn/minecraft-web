@@ -44,7 +44,8 @@
             transform: translateY(-2px);
         }
 
-        #launch_countdown_screen {
+        /* Man hinh loading cua chung ta */
+        #our_loading_screen {
             position: fixed; inset: 0; display: flex; align-items: center; justify-content: center;
             background: radial-gradient(circle at center, #111827 0%, #000 100%);
             z-index: 2000; transition: opacity 1s cubic-bezier(0.4, 0, 0.2, 1);
@@ -86,22 +87,6 @@
             box-shadow: 0 0 20px rgba(34, 197, 94, 0.4);
         }
 
-        #start-btn {
-            display: none;
-            margin-top: 16px;
-            background: #22c55e;
-            color: white;
-            border: none;
-            padding: 12px 32px;
-            border-radius: 12px;
-            font-size: 14px;
-            font-weight: 700;
-            cursor: pointer;
-            font-family: 'Inter', sans-serif;
-            transition: background 0.2s;
-        }
-        #start-btn:hover { background: #16a34a; }
-
         #error-log {
             margin-top: 16px; text-align: left;
             font-family: 'JetBrains Mono', monospace; font-size: 11px;
@@ -109,37 +94,54 @@
             padding: 12px; border-radius: 12px;
             display: none; border: 1px solid rgba(239, 68, 68, 0.1);
         }
+
+        /* An hoan toan man hinh countdown goc cua game.js */
+        #launch_countdown_screen {
+            display: none !important;
+        }
     </style>
 </head>
 
 <body>
     <div id="game_frame"></div>
-    <button id="back-btn" onclick="location.href='login.html'">✕ Thoát Game</button>
+    <button id="back-btn" onclick="location.href='login.html'">&#x2715; Thoat Game</button>
 
-    <div id="launch_countdown_screen">
+    <!-- Man hinh loading cua chung ta -->
+    <div id="our_loading_screen">
         <div class="loader-card">
             <h1>MINECRAFT 1.12.2</h1>
-            <p id="status-text">Đang tải tài nguyên...</p>
+            <p id="status-text">Dang tai tai nguyen...</p>
             <div class="progress-bar">
                 <div id="progress-fill"></div>
             </div>
-            <button id="start-btn" onclick="window._manualStart && window._manualStart()">Bắt đầu ngay</button>
             <div id="error-log"></div>
         </div>
     </div>
 
+    <!--
+        DOM elements ma game.js can de khoi dong.
+        game.js tim kiems: launchCountdownNumber, launchCountdownProgress, skipCountdown
+        CSS #launch_countdown_screen { display: none } se an chung khoi user nhung
+        chung van ton tai trong DOM de game.js co the truy cap.
+    -->
+    <div id="launch_countdown_screen">
+        <span id="launchCountdownNumber">6</span>
+        <div id="launchCountdownProgress" style="width:0%"></div>
+        <button id="skipCountdown">Skip</button>
+    </div>
+
     <script type="text/javascript">
         (function () {
-            const screenEl = document.getElementById("launch_countdown_screen");
-            const statusText = document.getElementById("status-text");
-            const progressFill = document.getElementById("progress-fill");
-            const errorLog = document.getElementById("error-log");
+            var ourScreen = document.getElementById("our_loading_screen");
+            var statusText = document.getElementById("status-text");
+            var progressFill = document.getElementById("progress-fill");
+            var errorLog = document.getElementById("error-log");
 
-            const urlParams = new URLSearchParams(window.location.search);
-            const username = urlParams.get('username') || "Steve" + Math.floor(Math.random() * 100);
-            const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) || (window.innerWidth < 1024);
+            var urlParams = new URLSearchParams(window.location.search);
+            var username = urlParams.get('username') || "Steve" + Math.floor(Math.random() * 100);
+            var isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) || (window.innerWidth < 1024);
 
-            // Cấu hình chuẩn EaglercraftX
+            // Cau hinh chuan EaglercraftX
             window.eaglercraftXOpts = {
                 container: "game_frame",
                 assetsURI: "assets.epk",
@@ -165,17 +167,17 @@
                 }
             };
 
-            const scripts = [
-                { src: "assets-data.js", weight: 35, status: "Đang tải dữ liệu trò chơi..." },
-                { src: "game-engine.js", weight: 10, status: "Đang nạp bản vá LAN..." },
-                { src: "game.js", weight: 55, status: "Đang khởi động Minecraft..." }
+            var scripts = [
+                { src: "game.js", weight: 55, status: "Dang tai Minecraft Engine (31MB)..." },
+                { src: "game-engine.js", weight: 5, status: "Dang nap ban va LAN..." },
+                { src: "assets-data.js", weight: 40, status: "Dang tai du lieu game (17MB)..." }
             ];
 
-            let currentProgress = 0;
+            var currentProgress = 0;
 
             function logError(msg) {
                 errorLog.style.display = "block";
-                const div = document.createElement("div");
+                var div = document.createElement("div");
                 div.textContent = "> " + msg;
                 errorLog.appendChild(div);
                 console.error("[Play]", msg);
@@ -187,92 +189,99 @@
                     return;
                 }
 
-                const script = scripts[index];
-                statusText.textContent = `${script.status} (${Math.round(currentProgress)}%)`;
+                var script = scripts[index];
+                statusText.textContent = script.status + " (" + Math.round(currentProgress) + "%)";
 
-                const s = document.createElement("script");
+                var s = document.createElement("script");
                 s.src = script.src + "?v=" + Date.now();
                 s.async = false;
                 
-                s.onload = () => {
+                s.onload = function() {
                     currentProgress += script.weight;
                     progressFill.style.width = currentProgress + "%";
-                    console.log(`[Loader] Đã nạp: ${script.src}`);
+                    console.log("[Loader] Da nap: " + script.src);
                     loadNextScript(index + 1);
                 };
 
-                s.onerror = () => {
-                    logError(`Không thể tải ${script.src}. Vui lòng reload trang.`);
-                    statusText.textContent = "LỖI TẢI TÀI NGUYÊN";
+                s.onerror = function() {
+                    logError("Khong the tai " + script.src + ". Vui long reload trang.");
+                    statusText.textContent = "LOI TAI TAI NGUYEN";
                     statusText.style.color = "#ef4444";
                 };
 
                 document.body.appendChild(s);
             }
 
-            const startBtn = document.getElementById('start-btn');
-
-            function hideLoader() {
-                screenEl.style.opacity = '0';
-                setTimeout(() => { screenEl.style.display = 'none'; }, 1000);
+            function hideOurLoader() {
+                ourScreen.style.opacity = '0';
+                setTimeout(function() { ourScreen.style.display = 'none'; }, 1000);
             }
 
             function finalize() {
-                statusText.textContent = "Sẵn sàng! Đang khởi tạo...";
+                statusText.textContent = "San sang! Dang khoi tao engine...";
                 progressFill.style.width = "100%";
 
-                // Áp dụng patch LAN từ game-engine.js (nếu có)
+                // Ap dung patch LAN tu game-engine.js (neu co)
                 if (typeof window.applyEaglercraftLanPatch === 'function') {
                     try { window.applyEaglercraftLanPatch(); } catch(e) {}
                 }
-                
-                // Hiển thị nút bắt đầu thủ công
-                if (startBtn) startBtn.style.display = 'inline-block';
 
-                // Định nghĩa hàm để nút onclick gọi
-                window._manualStart = hideLoader;
+                console.log("[Play] Tat ca scripts da tai xong. Dispatching window load event de kich hoat engine...");
 
-                // EaglercraftX tự khởi động sau khi scripts load xong
-                // Tự động ẩn loading screen sau 5 giây
-                setTimeout(hideLoader, 5000);
+                // GIAI PHAP CHINH:
+                // game.js la IIFE dang ky window.addEventListener("load", ...) de khoi dong engine.
+                // Vi chung ta load scripts dong (sau khi load event da xay ra),
+                // ta phai dispatch lai su kien nay de trigger engine.
+                // game.js se tim: launchCountdownNumber, launchCountdownProgress, skipCountdown
+                // (cac elements nay da co trong DOM, chi bi an bang CSS display:none)
+                window.dispatchEvent(new Event('load'));
+
+                // An man hinh loading cua chung ta sau khi engine da co du thoi gian khoi dong
+                setTimeout(hideOurLoader, 4000);
             }
 
             // Pointer Lock Bridge
             (function() {
-                let virtualLock = false;
-                window.addEventListener('message', e => {
-                    if(e.data.type === 'set-virtual-lock') {
+                var virtualLock = false;
+                window.addEventListener('message', function(e) {
+                    if(e.data && e.data.type === 'set-virtual-lock') {
                         virtualLock = !!e.data.value;
                         document.dispatchEvent(new Event('pointerlockchange'));
                     }
                 });
-                Object.defineProperty(document, 'pointerLockElement', {
-                    get: () => virtualLock ? document.getElementById('game_frame') : null
-                });
+                try {
+                    Object.defineProperty(document, 'pointerLockElement', {
+                        get: function() { return virtualLock ? document.getElementById('game_frame') : null; },
+                        configurable: true
+                    });
+                } catch(e) {
+                    console.warn("[Play] Khong the dinh nghia pointerLockElement:", e);
+                }
             })();
 
-            // Khởi động khi trang đã nạp
-            window.addEventListener('load', () => {
-                console.log("[Play] Khởi động phiên làm việc: ", username);
+            // Khoi dong ngay khi DOM san sang (khong cho load event)
+            if (document.readyState === 'loading') {
+                document.addEventListener('DOMContentLoaded', function() { loadNextScript(0); });
+            } else {
                 loadNextScript(0);
-            });
+            }
 
-            // Ngăn chặn thoát trang vô ý
-            window.addEventListener('keydown', e => {
+            // Ngan chan thoat trang vo y
+            window.addEventListener('keydown', function(e) {
                 if (e.key === 'Backspace' && (e.target === document.body || e.target.tagName === 'CANVAS')) {
                     e.preventDefault();
                 }
             });
 
-            // Lắng nghe lệnh từ trang mẹ (Next.js)
-            window.addEventListener('message', (event) => {
-                const data = event.data;
+            // Lang nghe lenh tu trang me (Next.js)
+            window.addEventListener('message', function(event) {
+                var data = event.data;
                 if (!data) return;
 
-                // 1. Xử lý giả lập phím bấm (Cho Mobile)
+                // 1. Xu ly gia lap phim bam (Cho Mobile)
                 if (data.type === 'key-down' || data.type === 'key-up') {
-                    const eventType = data.type === 'key-down' ? 'keydown' : 'keyup';
-                    const keyEvent = new KeyboardEvent(eventType, {
+                    var eventType = data.type === 'key-down' ? 'keydown' : 'keyup';
+                    var keyEvent = new KeyboardEvent(eventType, {
                         key: data.key,
                         code: data.code,
                         keyCode: data.keyCode,
@@ -281,18 +290,15 @@
                         cancelable: true
                     });
                     document.dispatchEvent(keyEvent);
-                    // Một số game engine lắng nghe trên window hoặc canvas
                     window.dispatchEvent(keyEvent);
-                    const canvas = document.querySelector('canvas');
+                    var canvas = document.querySelector('canvas');
                     if (canvas) canvas.dispatchEvent(keyEvent);
                 }
 
-                // 2. Xử lý thực thi Script
+                // 2. Xu ly thuc thi Script
                 if (data.type === 'execute-script') {
                     try {
-                        // Thực thi code trong một context an toàn (nếu có thể)
-                        // Ở đây chúng ta sử dụng eval để demo khả năng mở rộng
-                        const result = eval(data.code);
+                        var result = eval(data.code);
                         window.parent.postMessage({ 
                             type: 'script-executed', 
                             status: 'success',
@@ -307,7 +313,7 @@
                     }
                 }
 
-                // 3. Patch LAN (Sửa lỗi nút bị xám)
+                // 3. Patch LAN (Sua loi nut bi xam)
                 if (data === 'FORCE_LAN_PATCH') {
                     if (typeof window.applyEaglercraftLanPatch === 'function') {
                         window.applyEaglercraftLanPatch();
