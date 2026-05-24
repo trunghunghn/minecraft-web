@@ -242,10 +242,14 @@
                     try { window.applyEaglercraftLanPatch(); } catch(e) {}
                 }
 
-                console.log("[Play] Tat ca scripts da tai xong. Dang cho engine tu dong khoi chay...");
+                // game.js dang ky window.addEventListener("load", ...) de bat dau dem nguoc 5 giay.
+                // Vi chung ta load script dong (sau khi trang da loaded), ta phai dispatch lai.
+                // Cau truc DOM da dung: launch_countdown_screen la con truc tiep cua body.
+                console.log("[Play] Tat ca scripts da tai xong. Firing window load event de khoi dong engine...");
+                window.dispatchEvent(new Event('load'));
 
-                // An man hinh loading cua chung ta sau khi engine da co du thoi gian khoi dong
-                setTimeout(hideOurLoader, 4000);
+                // An man hinh loading sau 8 giay (5 giay dem nguoc + buffer)
+                setTimeout(hideOurLoader, 8000);
             }
 
             // Pointer Lock Bridge
