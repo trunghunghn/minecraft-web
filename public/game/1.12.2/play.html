@@ -211,13 +211,38 @@
                 var s = document.createElement("script");
                 s.src = script.src + "?v=" + Date.now();
                 s.async = false;
-                
-                s.onload = function() {
-                    currentProgress += script.weight;
-                    progressFill.style.width = currentProgress + "%";
-                    console.log("[Loader] Da nap: " + script.src);
-                    loadNextScript(index + 1);
-                };
+
+                // Quan trong: game.js dung document.currentScript o dong dau tien.
+                // Khi load dong, currentScript = null → engine crash.
+                // Giai phap: patch getter cua document.currentScript truoc khi script chay.
+                if (script.src === "game.js") {
+                    try {
+                        Object.defineProperty(document, 'currentScript', {
+                            get: function() { return s; },
+                            configurable: true
+                        });
+                    } catch(e) {}
+                    s.onload = function() {
+                        // Khoi phuc currentScript sau khi script da chay xong
+                        try {
+                            Object.defineProperty(document, 'currentScript', {
+                                get: function() { return null; },
+                                configurable: true
+                            });
+                        } catch(e) {}
+                        currentProgress += script.weight;
+                        progressFill.style.width = currentProgress + "%";
+                        console.log("[Loader] Da nap: " + script.src);
+                        loadNextScript(index + 1);
+                    };
+                } else {
+                    s.onload = function() {
+                        currentProgress += script.weight;
+                        progressFill.style.width = currentProgress + "%";
+                        console.log("[Loader] Da nap: " + script.src);
+                        loadNextScript(index + 1);
+                    };
+                }
 
                 s.onerror = function() {
                     logError("Khong the tai " + script.src + ". Vui long reload trang.");
