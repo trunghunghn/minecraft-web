@@ -7,357 +7,53 @@
     <title>Minecraft 1.12.2 - Playing</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
     <style>
-        :root {
-            --primary: #22c55e;
-            --bg-dark: #0a0a0b;
-            --glass: rgba(255, 255, 255, 0.03);
-            --glass-border: rgba(255, 255, 255, 0.08);
-        }
-
         * { margin: 0; padding: 0; box-sizing: border-box; }
-        
-        body, html { 
-            width: 100%; height: 100%; overflow: hidden; 
-            background: var(--bg-dark); 
+
+        body, html {
+            width: 100%; height: 100%; overflow: hidden;
+            background: black;
             font-family: 'Inter', sans-serif;
-            color: white;
-            touch-action: none;
         }
 
-        #game_frame { 
-            width: 100%; height: 100%; position: absolute; 
-            top: 0; left: 0; z-index: 1; 
+        #game-iframe {
+            width: 100%;
+            height: 100%;
+            border: none;
+            display: block;
         }
-        
+
         #back-btn {
-            position: fixed; top: 20px; right: 20px; z-index: 1000;
-            background: rgba(255, 255, 255, 0.05); 
-            color: white; 
-            border: 1px solid var(--glass-border);
-            padding: 10px 20px; border-radius: 12px; cursor: pointer; 
+            position: fixed; top: 16px; right: 16px; z-index: 9999;
+            background: rgba(0,0,0,0.6);
+            color: white;
+            border: 1px solid rgba(255,255,255,0.15);
+            padding: 8px 18px; border-radius: 10px; cursor: pointer;
             font-size: 13px; font-weight: 600;
-            backdrop-filter: blur(10px); transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            backdrop-filter: blur(10px);
+            transition: background 0.2s;
+            text-decoration: none;
         }
-
-        #back-btn:hover {
-            background: rgba(255, 255, 255, 0.1);
-            transform: translateY(-2px);
-        }
-
-        /* Man hinh loading cua chung ta */
-        #our_loading_screen {
-            position: fixed; inset: 0; display: flex; align-items: center; justify-content: center;
-            background: radial-gradient(circle at center, #111827 0%, #000 100%);
-            z-index: 2000; transition: opacity 1s cubic-bezier(0.4, 0, 0.2, 1);
-        }
-
-        .loader-card {
-            background: var(--glass);
-            backdrop-filter: blur(40px);
-            border: 1px solid var(--glass-border);
-            padding: 60px;
-            border-radius: 40px;
-            text-align: center;
-            width: 90%;
-            max-width: 460px;
-            box-shadow: 0 40px 100px -20px rgba(0, 0, 0, 0.8);
-        }
-
-        h1 {
-            font-size: 32px; font-weight: 800; letter-spacing: -1px;
-            margin-bottom: 8px;
-            background: linear-gradient(135deg, #fff 0%, #64748b 100%);
-            -webkit-background-clip: text; -webkit-text-fill-color: transparent;
-        }
-
-        #status-text {
-            font-size: 15px; color: #94a3b8; margin: 24px 0 12px;
-            font-weight: 500;
-        }
-        
-        .progress-bar {
-            width: 100%; height: 8px; background: rgba(255, 255, 255, 0.05);
-            border-radius: 10px; overflow: hidden; margin-bottom: 32px;
-            border: 1px solid rgba(255, 255, 255, 0.05);
-        }
-
-        #progress-fill {
-            height: 100%; background: linear-gradient(90deg, #22c55e, #4ade80);
-            width: 0%; transition: width 0.6s cubic-bezier(0.22, 1, 0.36, 1);
-            box-shadow: 0 0 20px rgba(34, 197, 94, 0.4);
-        }
-
-        #error-log {
-            margin-top: 16px; text-align: left;
-            font-family: 'JetBrains Mono', monospace; font-size: 11px;
-            color: #ef4444; background: rgba(239, 68, 68, 0.05);
-            padding: 12px; border-radius: 12px;
-            display: none; border: 1px solid rgba(239, 68, 68, 0.1);
-        }
-
+        #back-btn:hover { background: rgba(255,255,255,0.15); }
     </style>
 </head>
 
-<body id="game_frame" style="margin:0;width:100%;height:100%;overflow:hidden;background-color:#121212;">
-    <button id="back-btn" onclick="location.href='login.html'">&#x2715; Thoat Game</button>
+<body>
+    <a id="back-btn" href="/">✕ Thoat Game</a>
+    <iframe
+        id="game-iframe"
+        allowfullscreen
+        allow="pointer-lock *; fullscreen *"
+    ></iframe>
 
-    <!-- Man hinh loading cua chung ta -->
-    <div id="our_loading_screen">
-        <div class="loader-card">
-            <h1>MINECRAFT 1.12.2</h1>
-            <p id="status-text">Dang tai tai nguyen...</p>
-            <div class="progress-bar">
-                <div id="progress-fill"></div>
-            </div>
-            <div id="error-log"></div>
-        </div>
-    </div>
-
-    <!--
-        DOM elements ma game.js can de khoi dong - PHAI la con truc tiep cua body (game_frame).
-        Game engine goi document.body.removeChild(launch_countdown_screen) roi goi main().
-        Neu khong phai con truc tiep cua body se bi crash!
-    -->
-    <div style="margin:0px;width:100%;height:100%;font-family:sans-serif;display:flex;align-items:center;user-select:none;opacity:0;position:absolute;pointer-events:none;z-index:-100;" id="launch_countdown_screen">
-        <div style="margin:auto;text-align:center;color:#FFFFFF;">
-            <h2>Game will launch in <span id="launchCountdownNumber">5</span>...</h2>
-            <div style="border:2px solid #FFFFFF;width:100%;height:15px;padding:1px;margin-bottom:20vh;">
-                <div id="launchCountdownProgress" style="background-color:#555555;width:0%;height:100%;"></div>
-            </div>
-            <button id="skipCountdown" autofocus style="padding:10px 20px;font-size:1rem;color:#FFFFFF;background-color:#333333;border:none;cursor:pointer;border-radius:5px;">Skip</button>
-        </div>
-    </div>
-
-    <script type="text/javascript">
-        (function () {
-            var ourScreen = document.getElementById("our_loading_screen");
-            var statusText = document.getElementById("status-text");
-            var progressFill = document.getElementById("progress-fill");
-            var errorLog = document.getElementById("error-log");
-
+    <script>
+        (function() {
             var urlParams = new URLSearchParams(window.location.search);
-            var username = urlParams.get('username') || "Steve" + Math.floor(Math.random() * 100);
-            var isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) || (window.innerWidth < 1024);
+            var username = urlParams.get('username') || 'Steve';
+            var mobile = urlParams.get('mobile') || 'false';
 
-            // Cau hinh chuan EaglercraftX
-            window.eaglercraftXOpts = {
-                container: "game_frame",
-                assetsURI: "assets.epk",
-                localesURI: "lang/",
-                worldsDB: "worlds",
-                playerName: username,
-                enableMultiplayer: true,
-                allowServerConfig: true,
-                allowLAN: true,
-                checkRelays: true,
-                forceIntegratedServer: true,
-                integratedServer: true,
-                mobile: urlParams.get("mobile") === "true" || isMobile,
-                relays: [
-                    { addr: "wss://relay.webmc.fun/", name: "WebMC Relay (Stable)" },
-                    { addr: "wss://relay.de0.cc/", name: "Official Relay #1" },
-                    { addr: "wss://relay.lax1dude.net/", name: "Lax1dude Relay #2" },
-                    { addr: "wss://relay.deev.is/", name: "Deev.is Relay" }
-                ],
-                mainMenu: {
-                    splashes: ["Ready to Play!", "Eaglercraft 1.12.2"],
-                    brand: "Minecraft Web"
-                }
-            };
-
-            // Force patch LAN trong localStorage de ghi de cac cau hinh cu (truoc khi game.js chay)
-            try {
-                var settings = localStorage.getItem("eaglercraftX.settings");
-                if (settings) {
-                    var data = JSON.parse(settings);
-                    data.allowLAN = true;
-                    data.enableMultiplayer = true;
-                    localStorage.setItem("eaglercraftX.settings", JSON.stringify(data));
-                } else {
-                    localStorage.setItem("eaglercraftX.settings", JSON.stringify({
-                        allowLAN: true,
-                        enableMultiplayer: true
-                    }));
-                }
-            } catch(e) {
-                console.warn("[Play] Khong the patch localStorage:", e);
-            }
-
-            var scripts = [
-                { src: "game-engine.js", weight: 5, status: "Dang nap ban va LAN..." },
-                { src: "assets-data.js", weight: 40, status: "Dang tai du lieu game (17MB)..." },
-                { src: "game.js", weight: 55, status: "Dang tai Minecraft Engine (31MB)..." }
-            ];
-
-            var currentProgress = 0;
-
-            function logError(msg) {
-                errorLog.style.display = "block";
-                var div = document.createElement("div");
-                div.textContent = "> " + msg;
-                errorLog.appendChild(div);
-                console.error("[Play]", msg);
-            }
-
-            function loadNextScript(index) {
-                if (index >= scripts.length) {
-                    finalize();
-                    return;
-                }
-
-                var script = scripts[index];
-                statusText.textContent = script.status + " (" + Math.round(currentProgress) + "%)";
-
-                var s = document.createElement("script");
-                s.src = script.src + "?v=" + Date.now();
-                s.async = false;
-
-                // Quan trong: game.js dung document.currentScript o dong dau tien.
-                // Khi load dong, currentScript = null → engine crash.
-                // Giai phap: patch getter cua document.currentScript truoc khi script chay.
-                if (script.src === "game.js") {
-                    try {
-                        Object.defineProperty(document, 'currentScript', {
-                            get: function() { return s; },
-                            configurable: true
-                        });
-                    } catch(e) {}
-                    s.onload = function() {
-                        // Khoi phuc currentScript sau khi script da chay xong
-                        try {
-                            Object.defineProperty(document, 'currentScript', {
-                                get: function() { return null; },
-                                configurable: true
-                            });
-                        } catch(e) {}
-                        currentProgress += script.weight;
-                        progressFill.style.width = currentProgress + "%";
-                        console.log("[Loader] Da nap: " + script.src);
-                        loadNextScript(index + 1);
-                    };
-                } else {
-                    s.onload = function() {
-                        currentProgress += script.weight;
-                        progressFill.style.width = currentProgress + "%";
-                        console.log("[Loader] Da nap: " + script.src);
-                        loadNextScript(index + 1);
-                    };
-                }
-
-                s.onerror = function() {
-                    logError("Khong the tai " + script.src + ". Vui long reload trang.");
-                    statusText.textContent = "LOI TAI TAI NGUYEN";
-                    statusText.style.color = "#ef4444";
-                };
-
-                document.body.appendChild(s);
-            }
-
-            function hideOurLoader() {
-                ourScreen.style.opacity = '0';
-                setTimeout(function() { ourScreen.style.display = 'none'; }, 1000);
-            }
-
-            function finalize() {
-                statusText.textContent = "San sang! Dang khoi tao engine...";
-                progressFill.style.width = "100%";
-
-                // Ap dung patch LAN tu game-engine.js (neu co)
-                if (typeof window.applyEaglercraftLanPatch === 'function') {
-                    try { window.applyEaglercraftLanPatch(); } catch(e) {}
-                }
-
-                // game.js dang ky window.addEventListener("load", ...) de bat dau dem nguoc 5 giay.
-                // Vi chung ta load script dong (sau khi trang da loaded), ta phai dispatch lai.
-                // Cau truc DOM da dung: launch_countdown_screen la con truc tiep cua body.
-                console.log("[Play] Tat ca scripts da tai xong. Firing window load event de khoi dong engine...");
-                window.dispatchEvent(new Event('load'));
-
-                // An man hinh loading sau 8 giay (5 giay dem nguoc + buffer)
-                setTimeout(hideOurLoader, 8000);
-            }
-
-            // Pointer Lock Bridge
-            (function() {
-                var virtualLock = false;
-                window.addEventListener('message', function(e) {
-                    if(e.data && e.data.type === 'set-virtual-lock') {
-                        virtualLock = !!e.data.value;
-                        document.dispatchEvent(new Event('pointerlockchange'));
-                    }
-                });
-                try {
-                    Object.defineProperty(document, 'pointerLockElement', {
-                        get: function() { return virtualLock ? document.getElementById('game_frame') : null; },
-                        configurable: true
-                    });
-                } catch(e) {
-                    console.warn("[Play] Khong the dinh nghia pointerLockElement:", e);
-                }
-            })();
-
-            // Khoi dong ngay khi DOM san sang (khong cho load event)
-            if (document.readyState === 'loading') {
-                document.addEventListener('DOMContentLoaded', function() { loadNextScript(0); });
-            } else {
-                loadNextScript(0);
-            }
-
-            // Ngan chan thoat trang vo y
-            window.addEventListener('keydown', function(e) {
-                if (e.key === 'Backspace' && (e.target === document.body || e.target.tagName === 'CANVAS')) {
-                    e.preventDefault();
-                }
-            });
-
-            // Lang nghe lenh tu trang me (Next.js)
-            window.addEventListener('message', function(event) {
-                var data = event.data;
-                if (!data) return;
-
-                // 1. Xu ly gia lap phim bam (Cho Mobile)
-                if (data.type === 'key-down' || data.type === 'key-up') {
-                    var eventType = data.type === 'key-down' ? 'keydown' : 'keyup';
-                    var keyEvent = new KeyboardEvent(eventType, {
-                        key: data.key,
-                        code: data.code,
-                        keyCode: data.keyCode,
-                        which: data.keyCode,
-                        bubbles: true,
-                        cancelable: true
-                    });
-                    document.dispatchEvent(keyEvent);
-                    window.dispatchEvent(keyEvent);
-                    var canvas = document.querySelector('canvas');
-                    if (canvas) canvas.dispatchEvent(keyEvent);
-                }
-
-                // 2. Xu ly thuc thi Script
-                if (data.type === 'execute-script') {
-                    try {
-                        var result = eval(data.code);
-                        window.parent.postMessage({ 
-                            type: 'script-executed', 
-                            status: 'success',
-                            result: result 
-                        }, '*');
-                    } catch (err) {
-                        window.parent.postMessage({ 
-                            type: 'script-executed', 
-                            status: 'error', 
-                            message: err.message 
-                        }, '*');
-                    }
-                }
-
-                // 3. Patch LAN (Sua loi nut bi xam)
-                if (data === 'FORCE_LAN_PATCH') {
-                    if (typeof window.applyEaglercraftLanPatch === 'function') {
-                        window.applyEaglercraftLanPatch();
-                        console.log("[Bridge] LAN Patch applied!");
-                    }
-                }
-            });
+            // Nhung index.html vao iframe voi username va mobile parameter
+            var gameUrl = 'index.html?username=' + encodeURIComponent(username) + '&mobile=' + mobile;
+            document.getElementById('game-iframe').src = gameUrl;
         })();
     </script>
 </body>
