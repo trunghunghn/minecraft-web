@@ -276,7 +276,7 @@ export default function PlayPage() {
                             {/* Game Iframe - Always stays in DOM to receive messages */}
                             <iframe
                                 id="game-iframe"
-                                src={`/game/1.12.2/play.html?username=${session?.user?.name || "Guest"}&mobile=${isMobile}`}
+                                src={`/game/1.12.2/index.html?username=${session?.user?.name || "Guest"}&mobile=${isMobile}`}
                                 className={`w-full h-full border-none ${activeTab === "game" ? "block" : "hidden"}`}
                                 allow="autoplay; fullscreen; pointer-lock"
                             />
