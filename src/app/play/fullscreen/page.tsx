@@ -40,7 +40,7 @@ export default function FullscreenPlay() {
         <div className="h-screen w-screen bg-black overflow-hidden relative">
             <iframe
                 id="game-iframe"
-                src={`/game/1.12.2/play.html?username=${typeof window !== 'undefined' ? new URLSearchParams(window.location.search).get('username') || 'Steve' : 'Steve'}`}
+                src={`/game/1.12.2/index.html?username=${typeof window !== 'undefined' ? new URLSearchParams(window.location.search).get('username') || 'Steve' : 'Steve'}`}
                 className="w-full h-full border-none bg-black"
                 allow="autoplay; fullscreen; pointer-lock"
             />
