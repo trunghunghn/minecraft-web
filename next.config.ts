@@ -10,9 +10,8 @@ const nextConfig: NextConfig = {
   async headers() {
     return [
       {
-        // Game files: cần COOP + COEP để Eaglercraft có thể dùng SharedArrayBuffer
-        // postMessage vẫn hoạt động giữa same-origin pages dù có COOP/COEP
-        source: "/game/:path*",
+        // Tất cả trang Next.js: cần COOP + COEP để SharedArrayBuffer hoạt động
+        source: "/((?!game).*)",
         headers: [
           {
             key: "Cross-Origin-Opener-Policy",
@@ -26,9 +25,23 @@ const nextConfig: NextConfig = {
             key: "Cross-Origin-Resource-Policy",
             value: "same-origin",
           },
+        ],
+      },
+      {
+        // Game files: COEP require-corp + CORP cross-origin để iframe có thể nhúng
+        source: "/game/:path*",
+        headers: [
           {
-            key: "Cross-Origin-Allow-Origin",
-            value: "*",
+            key: "Cross-Origin-Opener-Policy",
+            value: "same-origin",
+          },
+          {
+            key: "Cross-Origin-Embedder-Policy",
+            value: "require-corp",
+          },
+          {
+            key: "Cross-Origin-Resource-Policy",
+            value: "cross-origin",
           },
         ],
       },
@@ -36,8 +49,4 @@ const nextConfig: NextConfig = {
   },
 };
 
-
 export default nextConfig;
-
-// Trigger redeploy for Framework Preset change
-
