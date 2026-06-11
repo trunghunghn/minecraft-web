@@ -10,39 +10,21 @@ const nextConfig: NextConfig = {
   async headers() {
     return [
       {
-        // Tất cả trang Next.js: cần COOP + COEP để SharedArrayBuffer hoạt động
+        // Tất cả trang Next.js
         source: "/((?!game).*)",
         headers: [
-          {
-            key: "Cross-Origin-Opener-Policy",
-            value: "same-origin",
-          },
-          {
-            key: "Cross-Origin-Embedder-Policy",
-            value: "require-corp",
-          },
-          {
-            key: "Cross-Origin-Resource-Policy",
-            value: "same-origin",
-          },
+          { key: "Cross-Origin-Opener-Policy", value: "same-origin" },
+          { key: "Cross-Origin-Embedder-Policy", value: "credentialless" },
+          { key: "Cross-Origin-Resource-Policy", value: "same-origin" },
         ],
       },
       {
-        // Game files: COEP require-corp + CORP cross-origin để iframe có thể nhúng
+        // Game files: credentialless để tài nguyên external (Kaspersky, v.v.) không bị chặn
         source: "/game/:path*",
         headers: [
-          {
-            key: "Cross-Origin-Opener-Policy",
-            value: "same-origin",
-          },
-          {
-            key: "Cross-Origin-Embedder-Policy",
-            value: "require-corp",
-          },
-          {
-            key: "Cross-Origin-Resource-Policy",
-            value: "cross-origin",
-          },
+          { key: "Cross-Origin-Opener-Policy", value: "same-origin" },
+          { key: "Cross-Origin-Embedder-Policy", value: "credentialless" },
+          { key: "Cross-Origin-Resource-Policy", value: "cross-origin" },
         ],
       },
     ];
