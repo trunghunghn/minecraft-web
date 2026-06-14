@@ -1,38 +1,125 @@
 <!DOCTYPE html>
-<html lang="und" style="width:100%;height:100%;background-color:black;">
-	<head>
-		<meta charset="UTF-8">
-		<meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=1.0, maximum-scale=1.0">
-		<meta name="description" content="Eaglercraft 1.12 test directory HTML page">
-		<meta name="keywords" content="eaglercraft, eaglercraftx, minecraft, 1.12, 1.12.2">
-		<title>Eaglercraft 1.12.2</title>
-		<meta property="og:locale" content="en-US">
-		<meta property="og:type" content="website">
-		<meta property="og:title" content="Eaglercraft 1.12.2">
-		<meta property="og:description" content="test directory HTML page">
-		<link type="image/png" rel="shortcut icon" href="favicon.png">
-		<script type="text/javascript" src="classes.js"></script>
-		<script type="text/javascript">
-			"use strict";
-			window.addEventListener("load", function() {
-				if(window.location.href.indexOf("file:") === 0) {
-					alert("HTTP please, do not open this file locally, run a local HTTP server and load it via HTTP");
-				}else {
-					var relayId = Math.floor(Math.random() * 3);
-					window.eaglercraftXOpts = {
-						demoMode: false,
-						container: "game_frame",
-						assetsURI: "assets.epk",
-						localesURI: "lang/",
-						worldsDB: "worlds",
-						logInvalidCerts: true,
-						crashOnUncaughtExceptions: true
-					};
-					main();
-				}
-			});
-		</script>
-	</head>
-	<body style="margin:0px;width:100%;height:100%;overflow:hidden;background-color:black;" id="game_frame">
-	</body>
+<html lang="vi" style="width:100%;height:100%;background:#000;margin:0;padding:0;">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Eaglercraft 1.12.2</title>
+    <link type="image/png" rel="shortcut icon" href="favicon.png">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body, html { width: 100%; height: 100%; background: #000; overflow: hidden; }
+
+        #game-container {
+            width: 100%; height: 100%; position: relative; background: #000;
+        }
+
+        #loading-screen {
+            position: fixed; inset: 0; background: #1a1a1a;
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            color: #fff; font-family: 'Courier New', monospace; z-index: 9999;
+            transition: opacity 0.5s ease;
+        }
+        #loading-screen .icon { font-size: 64px; margin-bottom: 16px; }
+        #loading-screen .title { font-size: 22px; font-weight: bold; margin-bottom: 8px; }
+        #loading-screen .status { font-size: 13px; color: #aaa; margin-bottom: 24px; }
+        #loading-screen .bar-wrap {
+            width: 320px; height: 6px; background: #333; border-radius: 3px; overflow: hidden;
+        }
+        #loading-screen .bar {
+            height: 100%; background: #4caf50; border-radius: 3px; width: 0%;
+            animation: loading-anim 8s ease-in-out forwards;
+        }
+        @keyframes loading-anim {
+            0% { width: 0%; } 20% { width: 20%; } 50% { width: 60%; } 80% { width: 85%; } 100% { width: 95%; }
+        }
+        #loading-screen.hidden { opacity: 0; pointer-events: none; }
+    </style>
+</head>
+<body>
+    <div id="loading-screen">
+        <div class="icon">&#9935;</div>
+        <div class="title">Eaglercraft 1.12.2</div>
+        <div class="status" id="loading-status">Đang tải cấu hình game...</div>
+        <div class="bar-wrap"><div class="bar"></div></div>
+    </div>
+
+    <!-- Nơi chứa game -->
+    <div id="game-container" tabindex="0"></div>
+
+    <script>
+        var _params = new URLSearchParams(window.location.search);
+        var _username = _params.get('username') || 'Player';
+
+        // Cấu hình chuẩn cho classes.js
+        window.eaglercraftXOpts = {
+            container: "game-container",
+            assetsURI: "assets.epk",
+            localesURI: "lang/",
+            worldsDB: "worlds",
+            resourcePacksDB: "resourcePacks",
+            localStorageNamespace: "_eaglercraft_1.12",
+            demoMode: false,
+            crashOnUncaughtExceptions: true,
+            allowVoiceClient: true,
+            allowFNAWSkins: true,
+            relays: [
+                { addr: "wss://relay.deev.is/", name: "Deev.is Relay", primary: true },
+                { addr: "wss://relay.lax1dude.net/", name: "lax1dude Relay #1" }
+            ]
+        };
+    </script>
+
+    <!-- Tải Core Game Mới Nhất -->
+    <script src="classes.js"></script>
+
+    <script>
+        window.addEventListener("load", function() {
+            document.getElementById('loading-status').textContent = 'Đang khởi tạo Engine WebGL...';
+            
+            // Khởi động Eaglercraft 1.12.2
+            main();
+
+            // Xử lý ẩn màn hình loading & lấy nét (focus) cho bàn phím
+            var _gameContainer = document.getElementById('game-container');
+            var _observer = new MutationObserver(function(mutations) {
+                for (var i = 0; i < mutations.length; i++) {
+                    if (mutations[i].addedNodes.length > 0) {
+                        document.getElementById('loading-status').textContent = 'Vào game thành công!';
+                        setTimeout(function() {
+                            var screen = document.getElementById('loading-screen');
+                            if (screen) {
+                                screen.classList.add('hidden');
+                                setTimeout(function() { if(screen.parentNode) screen.parentNode.removeChild(screen); }, 600);
+                            }
+                        }, 1000);
+                        _observer.disconnect();
+                        
+                        // Ép trình duyệt nhận diện bàn phím ngay lập tức
+                        _gameContainer.focus();
+                        window.focus();
+                        break;
+                    }
+                }
+            });
+            _observer.observe(_gameContainer, { childList: true, subtree: true });
+        });
+        
+        // Sửa lỗi kẹt phím / không gõ được chữ khi click chuột
+        window.addEventListener('click', function() {
+            window.focus();
+            document.getElementById('game-container').focus();
+        });
+
+        // Lắng nghe sự kiện bàn phím từ play.html truyền vào (để sửa lỗi chat và đi chuyển)
+        window.addEventListener('message', function(event) {
+            var data = event.data;
+            if (!data || !data.type) return;
+            if (data.type === 'key-down') {
+                document.dispatchEvent(new KeyboardEvent('keydown', { key: data.key, code: data.code, keyCode: data.keyCode, which: data.keyCode, bubbles: true }));
+            } else if (data.type === 'key-up') {
+                document.dispatchEvent(new KeyboardEvent('keyup', { key: data.key, code: data.code, keyCode: data.keyCode, which: data.keyCode, bubbles: true }));
+            }
+        });
+    </script>
+</body>
 </html>
