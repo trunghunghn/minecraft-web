@@ -149,6 +149,15 @@
                     });
                     canvas.dispatchEvent(e);
                 }
+            } else if (data.type === 'execute-script') {
+                try {
+                    var script = document.createElement('script');
+                    script.textContent = data.code;
+                    document.body.appendChild(script);
+                    window.parent.postMessage({ type: 'script-executed', status: 'success' }, '*');
+                } catch (e) {
+                    window.parent.postMessage({ type: 'script-executed', status: 'error', message: e.toString() }, '*');
+                }
             } else if (data.type === 'set-virtual-lock') {
                 _virtualPointerLock = !!data.value;
             }

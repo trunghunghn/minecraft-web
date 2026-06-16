@@ -201,7 +201,7 @@ export default function PlayPage() {
                         onClick={() => setShowEditor(!showEditor)}
                         className={`mc-button flex items-center gap-2 py-2 text-sm ${showEditor ? "bg-green-700" : ""}`}
                     >
-                        <Hammer size={16} /> {showEditor ? "ĐÓNG EDITOR" : "SCRIPT EDITOR"}
+                        <Hammer size={16} /> {showEditor ? "ĐÓNG TRÌNH QUẢN LÝ" : "CÀI MOD & SCRIPT"}
                     </button>
                     <button onClick={() => setShowSettings(true)} className="mc-button flex items-center gap-2 py-2 text-sm">
                         <Settings size={16} /> CÀI ĐẶT
