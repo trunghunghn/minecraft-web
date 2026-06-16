@@ -80,6 +80,18 @@
     <script src="classes.js"></script>
 
     <script>
+        var _virtualPointerLock = false;
+        try {
+            var _desc = Object.getOwnPropertyDescriptor(Document.prototype, 'pointerLockElement') || Object.getOwnPropertyDescriptor(document, 'pointerLockElement');
+            var _getPointerLock = _desc ? _desc.get : function() { return null; };
+            Object.defineProperty(document, 'pointerLockElement', {
+                get: function() {
+                    if (_virtualPointerLock) return document.getElementById('game-container').querySelector('canvas');
+                    return _getPointerLock.call(document);
+                }
+            });
+        } catch (e) { console.warn("Cannot override pointerLockElement", e); }
+
         window.addEventListener("load", function() {
             document.getElementById('loading-status').textContent = 'Đang khởi tạo Engine WebGL...';
             
@@ -137,6 +149,8 @@
                     });
                     canvas.dispatchEvent(e);
                 }
+            } else if (data.type === 'set-virtual-lock') {
+                _virtualPointerLock = !!data.value;
             }
         });
     </script>
