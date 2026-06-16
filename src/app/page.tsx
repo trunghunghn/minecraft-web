@@ -99,7 +99,7 @@ export default function Home() {
           {features.map((feature, index) => (
             <Link
               key={index}
-              href="/play"
+              href={feature.title === "Cộng Đồng" ? "/community" : "/play"}
               className="contents"
             >
               <motion.div

@@ -10,17 +10,18 @@
     "postinstall": "prisma generate"
   },
   "dependencies": {
+    "@auth/prisma-adapter": "^2.7.4",
+    "@monaco-editor/react": "^4.7.0",
+    "@prisma/client": "^6.3.1",
+    "clsx": "^2.1.1",
+    "date-fns": "^4.4.0",
+    "framer-motion": "^12.4.2",
+    "lucide-react": "^0.475.0",
     "next": "latest",
+    "next-auth": "5.0.0-beta.25",
     "react": "19.0.0",
     "react-dom": "19.0.0",
-    "next-auth": "5.0.0-beta.25",
-    "@auth/prisma-adapter": "^2.7.4",
-    "@prisma/client": "^6.3.1",
-    "lucide-react": "^0.475.0",
-    "framer-motion": "^12.4.2",
-    "clsx": "^2.1.1",
-    "tailwind-merge": "^3.0.1",
-    "@monaco-editor/react": "^4.7.0"
+    "tailwind-merge": "^3.0.1"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",
@@ -29,8 +30,8 @@
     "@types/react-dom": "^19",
     "eslint": "^9",
     "eslint-config-next": "latest",
+    "prisma": "^6.3.1",
     "tailwindcss": "^4",
-    "typescript": "^5",
-    "prisma": "^6.3.1"
+    "typescript": "^5"
   }
 }
