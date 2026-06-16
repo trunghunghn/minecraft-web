@@ -125,6 +125,18 @@
                 document.dispatchEvent(new KeyboardEvent('keydown', { key: data.key, code: data.code, keyCode: data.keyCode, which: data.keyCode, bubbles: true }));
             } else if (data.type === 'key-up') {
                 document.dispatchEvent(new KeyboardEvent('keyup', { key: data.key, code: data.code, keyCode: data.keyCode, which: data.keyCode, bubbles: true }));
+            } else if (data.type === 'mousedown' || data.type === 'mouseup' || data.type === 'mousemove' || data.type === 'click') {
+                var canvas = document.getElementById('game-container').querySelector('canvas') || document.getElementById('game-container');
+                if (canvas) {
+                    var e = new MouseEvent(data.type, {
+                        clientX: data.clientX, clientY: data.clientY,
+                        screenX: data.screenX || data.clientX, screenY: data.screenY || data.clientY,
+                        movementX: data.movementX || 0, movementY: data.movementY || 0,
+                        button: data.button || 0, buttons: data.buttons || 0,
+                        bubbles: true, cancelable: true, view: window
+                    });
+                    canvas.dispatchEvent(e);
+                }
             }
         });
     </script>
