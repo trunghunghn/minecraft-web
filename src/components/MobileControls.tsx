@@ -64,12 +64,13 @@ const Btn = ({ label, code, className = "", onClick, style, mousePos, dispatchMo
 export default function MobileControls({ onKeyDown, onKeyUp, onOpenSettings, topOffset = "top-[60px]", bottomOffset = "bottom-2" }: MobileControlsProps) {
     const [isMouseMode, setIsMouseMode] = useState(false);
     const [debugDot, setDebugDot] = useState<{ x: number; y: number } | null>(null);
-    const [holdActive, setHoldActive] = useState(false); // Hiệu ứng visual khi đang giữ để đập
+    const [holdActive, setHoldActive] = useState(false);
+    const [kbActive, setKbActive] = useState(false); // Bàn phím ảo đang mở
     const mousePos = useRef({ x: 100, y: 100 });
     const holdTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
     const isHoldingRef = useRef(false);
-    // Track trạng thái: đang trong game (first-person) hay đang ở menu
     const isInGameRef = useRef(false);
+    const hiddenInputRef = useRef<HTMLInputElement>(null); // Input ẩn để mở bàn phím ảo
 
     // Helper: Gửi sự kiện vào game thông qua Bridge (postMessage)
     const sendToBridge = (eventData: Record<string, unknown>) => {
@@ -368,16 +369,21 @@ export default function MobileControls({ onKeyDown, onKeyUp, onOpenSettings, top
                 <div className="flex gap-1 ml-2 pointer-events-none h-full">
                     <Btn label="DEBUG" code="F3" className="w-[70px] h-[30px]" mousePos={mousePos} dispatchMouseEvent={dispatchMouseEvent} handlePress={handlePress} handleRelease={handleRelease} />
                     <Btn label="CHAT" code="t" className="w-[70px] h-[30px]" mousePos={mousePos} dispatchMouseEvent={dispatchMouseEvent} handlePress={handlePress} handleRelease={handleRelease} />
+                    {/* Nút KEYBOARD mở bàn phím ảo */}
                     <button
-                        className="w-[70px] h-[30px] bg-gray-500/40 border border-white/30 flex items-center justify-center text-white font-bold text-[11px] uppercase pointer-events-auto active:bg-white/30 backdrop-blur-sm"
-                        onClick={() => {
-                            const txt = prompt("Nhập nội dung chat:");
-                            if (txt) {
-                                // Virtual chat implementation
+                        className={`w-[70px] h-[30px] border flex items-center justify-center text-white font-bold text-[11px] uppercase pointer-events-auto backdrop-blur-sm ${
+                            kbActive ? 'bg-blue-500/60 border-blue-400/60' : 'bg-gray-500/40 border-white/30 active:bg-white/30'
+                        }`}
+                        onPointerDown={(e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            if (hiddenInputRef.current) {
+                                hiddenInputRef.current.focus();
+                                setKbActive(true);
                             }
                         }}
                     >
-                        CHAT+
+                        ⌨️ KB
                     </button>
                     <Btn label="ESC" code="Escape" className="w-[70px] h-[30px] !bg-red-500/40" mousePos={mousePos} dispatchMouseEvent={dispatchMouseEvent} handlePress={handlePress} handleRelease={handleRelease} />
                     <Btn label="TAB" code="Tab" className="w-[70px] h-[30px]" mousePos={mousePos} dispatchMouseEvent={dispatchMouseEvent} handlePress={handlePress} handleRelease={handleRelease} />
@@ -413,6 +419,40 @@ export default function MobileControls({ onKeyDown, onKeyUp, onOpenSettings, top
                 className={`absolute right-5 w-[60px] h-[60px] rounded-full !text-[12px] z-20`}
                 style={{ bottom: `calc(${bottomOffset.includes('[') ? bottomOffset.split('[')[1].split(']')[0] : '8px'} + 100px)` }}
                 mousePos={mousePos} dispatchMouseEvent={dispatchMouseEvent} handlePress={handlePress} handleRelease={handleRelease}
+            />
+
+            {/* Input ẩn để mở bàn phím ảo trên điện thoại */}
+            <input
+                ref={hiddenInputRef}
+                type="text"
+                inputMode="text"
+                autoComplete="off"
+                autoCorrect="off"
+                autoCapitalize="off"
+                spellCheck={false}
+                style={{
+                    position: 'fixed', opacity: 0, width: 1, height: 1,
+                    top: -200, left: -200, pointerEvents: 'none', zIndex: -1
+                }}
+                onFocus={() => setKbActive(true)}
+                onBlur={() => setKbActive(false)}
+                onKeyDown={(e) => {
+                    e.stopPropagation();
+                    // Gửi key event vào game
+                    const keyCode = e.keyCode || e.which || 0;
+                    sendToBridge({ type: 'key-down', key: e.key, code: e.code, keyCode });
+                    onKeyDown?.(e.key);
+                }}
+                onKeyUp={(e) => {
+                    e.stopPropagation();
+                    const keyCode = e.keyCode || e.which || 0;
+                    sendToBridge({ type: 'key-up', key: e.key, code: e.code, keyCode });
+                    onKeyUp?.(e.key);
+                }}
+                onChange={(e) => {
+                    // Xoá text sau khi gửi để luôn nhận ký tự mới
+                    e.target.value = '';
+                }}
             />
         </div>
     );
