@@ -68,6 +68,8 @@ export default function MobileControls({ onKeyDown, onKeyUp, onOpenSettings, top
     const mousePos = useRef({ x: 100, y: 100 });
     const holdTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
     const isHoldingRef = useRef(false);
+    // Track trạng thái: đang trong game (first-person) hay đang ở menu
+    const isInGameRef = useRef(false);
 
     // Helper: Gửi sự kiện vào game thông qua Bridge (postMessage)
     const sendToBridge = (eventData: Record<string, unknown>) => {
@@ -85,6 +87,15 @@ export default function MobileControls({ onKeyDown, onKeyUp, onOpenSettings, top
     const lookStartPos = useRef<{ x: number, y: number } | null>(null);
 
     useEffect(() => {
+        // Lắng nghe trạng thái game từ iframe (inGame: true = đang chơi, false = đang ở menu)
+        const onGameStateMsg = (e: MessageEvent) => {
+            if (e.data?.type === 'game-state') {
+                isInGameRef.current = !!e.data.inGame;
+                console.log('[MobileControls] Game state:', e.data.inGame ? 'IN-GAME' : 'MENU');
+            }
+        };
+        window.addEventListener('message', onGameStateMsg);
+
         // Initialize cursor position on mount
         if (cursorRef.current) {
             cursorRef.current.style.transform = `translate3d(${mousePos.current.x}px, ${mousePos.current.y}px, 0)`;
@@ -117,7 +128,10 @@ export default function MobileControls({ onKeyDown, onKeyUp, onOpenSettings, top
             }
         }, 2000);
 
-        return () => clearInterval(timer);
+        return () => {
+            clearInterval(timer);
+            window.removeEventListener('message', onGameStateMsg);
+        };
     }, []);
 
     const dispatchKeyEvent = (type: 'keydown' | 'keyup', key: string) => {
@@ -244,23 +258,19 @@ export default function MobileControls({ onKeyDown, onKeyUp, onOpenSettings, top
                         lookStartTime.current = Date.now();
                         isHoldingRef.current = false;
 
-                        // Kích hoạt Virtual Pointer Lock để camera hoạt động
-                        sendToBridge({ type: "set-virtual-lock", value: true });
-
-                        // === GIỮ TAY = ĐẬP/ĐÁNH (left click hold sau 250ms) ===
-                        holdTimerRef.current = setTimeout(() => {
-                            isHoldingRef.current = true;
-                            setHoldActive(true);
-                            // Bắt đầu giữ chuột trái → đập block / đánh mob
-                            if (lookStartPos.current) {
-                                dispatchMouseEvent('mousedown', lookStartPos.current.x, lookStartPos.current.y, 0);
-                            }
-                        }, 250);
+                        // Chỉ bật hold timer khi đang trong game (first-person mode)
+                        if (isInGameRef.current) {
+                            // === GIỮ TAY ≥ 250ms = ĐẬP BLOCK / ĐÁNH MOB (left click hold) ===
+                            holdTimerRef.current = setTimeout(() => {
+                                isHoldingRef.current = true;
+                                setHoldActive(true);
+                                if (lookStartPos.current) {
+                                    dispatchMouseEvent('mousedown', lookStartPos.current.x, lookStartPos.current.y, 0);
+                                }
+                            }, 250);
+                        }
                     }}
                     onPointerUp={(e) => {
-                        // Tắt Virtual Pointer Lock
-                        sendToBridge({ type: "set-virtual-lock", value: false });
-
                         // Hủy hold timer nếu chưa kích hoạt
                         if (holdTimerRef.current) {
                             clearTimeout(holdTimerRef.current);
@@ -268,13 +278,11 @@ export default function MobileControls({ onKeyDown, onKeyUp, onOpenSettings, top
                         }
 
                         if (isHoldingRef.current) {
-                            // === Đang giữ → thả chuột trái ===
+                            // === Đang giữ → thả chuột trái (dừng đập) ===
                             dispatchMouseEvent('mouseup', e.clientX, e.clientY, 0);
-                            dispatchMouseEvent('click', e.clientX, e.clientY, 0);
                             isHoldingRef.current = false;
                             setHoldActive(false);
                         } else if (lookStartPos.current) {
-                            // === Tap nhanh = ĐẶT BLOCK / ĂN (right click) ===
                             const duration = Date.now() - lookStartTime.current;
                             const dx = Math.abs(e.clientX - lookStartPos.current.x);
                             const dy = Math.abs(e.clientY - lookStartPos.current.y);
@@ -282,13 +290,19 @@ export default function MobileControls({ onKeyDown, onKeyUp, onOpenSettings, top
                             if (duration < 300 && dx < 15 && dy < 15) {
                                 const tapX = lookStartPos.current.x;
                                 const tapY = lookStartPos.current.y;
-                                // Hover trước để highlight nút
                                 dispatchMouseEvent('mousemove', tapX, tapY, 0);
                                 requestAnimationFrame(() => {
-                                    // Left click = nhấn nút menu (Done, Back to Game...) + tương tác
-                                    dispatchMouseEvent('mousedown', tapX, tapY, 0);
-                                    dispatchMouseEvent('mouseup', tapX, tapY, 0);
-                                    dispatchMouseEvent('click', tapX, tapY, 0);
+                                    if (isInGameRef.current) {
+                                        // === TRONG GAME: Tap = ĐẶT BLOCK / ĂN (right click) ===
+                                        dispatchMouseEvent('mousedown', tapX, tapY, 2);
+                                        dispatchMouseEvent('mouseup', tapX, tapY, 2);
+                                        dispatchMouseEvent('click', tapX, tapY, 2);
+                                    } else {
+                                        // === NGOÀI GAME / MENU: Tap = NHẤN NÚT (left click) ===
+                                        dispatchMouseEvent('mousedown', tapX, tapY, 0);
+                                        dispatchMouseEvent('mouseup', tapX, tapY, 0);
+                                        dispatchMouseEvent('click', tapX, tapY, 0);
+                                    }
                                 });
                             }
                         }
