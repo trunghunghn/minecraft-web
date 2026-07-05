@@ -64,7 +64,10 @@ const Btn = ({ label, code, className = "", onClick, style, mousePos, dispatchMo
 export default function MobileControls({ onKeyDown, onKeyUp, onOpenSettings, topOffset = "top-[60px]", bottomOffset = "bottom-2" }: MobileControlsProps) {
     const [isMouseMode, setIsMouseMode] = useState(false);
     const [debugDot, setDebugDot] = useState<{ x: number; y: number } | null>(null);
+    const [holdActive, setHoldActive] = useState(false); // Hiệu ứng visual khi đang giữ để đập
     const mousePos = useRef({ x: 100, y: 100 });
+    const holdTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+    const isHoldingRef = useRef(false);
 
     // Helper: Gửi sự kiện vào game thông qua Bridge (postMessage)
     const sendToBridge = (eventData: Record<string, unknown>) => {
@@ -233,57 +236,93 @@ export default function MobileControls({ onKeyDown, onKeyUp, onOpenSettings, top
                     className="absolute right-0 bottom-0 pointer-events-auto z-10"
                     style={{ left: 0, top: topPx, touchAction: 'none' }}
                     onPointerDown={(e) => {
-                        // Prevent swipe-to-look starting on buttons (grid/jump)
                         const target = e.target as HTMLElement;
                         if (target.tagName === 'BUTTON') return;
-
 
                         lookTouchPos.current = { x: e.clientX, y: e.clientY };
                         lookStartPos.current = { x: e.clientX, y: e.clientY };
                         lookStartTime.current = Date.now();
-                        
-                        // Kích hoạt Virtual Pointer Lock trong iframe
+                        isHoldingRef.current = false;
+
+                        // Kích hoạt Virtual Pointer Lock để camera hoạt động
                         sendToBridge({ type: "set-virtual-lock", value: true });
+
+                        // === GIỮ TAY = ĐẬP/ĐÁNH (left click hold sau 250ms) ===
+                        holdTimerRef.current = setTimeout(() => {
+                            isHoldingRef.current = true;
+                            setHoldActive(true);
+                            // Bắt đầu giữ chuột trái → đập block / đánh mob
+                            if (lookStartPos.current) {
+                                dispatchMouseEvent('mousedown', lookStartPos.current.x, lookStartPos.current.y, 0);
+                            }
+                        }, 250);
                     }}
                     onPointerUp={(e) => {
                         // Tắt Virtual Pointer Lock
                         sendToBridge({ type: "set-virtual-lock", value: false });
 
-                        // Tap to click detection
-                        if (lookStartPos.current) {
+                        // Hủy hold timer nếu chưa kích hoạt
+                        if (holdTimerRef.current) {
+                            clearTimeout(holdTimerRef.current);
+                            holdTimerRef.current = null;
+                        }
+
+                        if (isHoldingRef.current) {
+                            // === Đang giữ → thả chuột trái ===
+                            dispatchMouseEvent('mouseup', e.clientX, e.clientY, 0);
+                            dispatchMouseEvent('click', e.clientX, e.clientY, 0);
+                            isHoldingRef.current = false;
+                            setHoldActive(false);
+                        } else if (lookStartPos.current) {
+                            // === Tap nhanh = ĐẶT BLOCK / ĂN (right click) ===
                             const duration = Date.now() - lookStartTime.current;
                             const dx = Math.abs(e.clientX - lookStartPos.current.x);
                             const dy = Math.abs(e.clientY - lookStartPos.current.y);
 
-                            if (duration < 250 && dx < 10 && dy < 10) {
-                                // Cache the start position to avoid e.clientX getting lost in setTimeout closure
+                            if (duration < 300 && dx < 15 && dy < 15) {
                                 const tapX = lookStartPos.current.x;
                                 const tapY = lookStartPos.current.y;
-
-                                // It's a tap, dispatch hover first to trigger button highlight
+                                // Hover trước để highlight nút
                                 dispatchMouseEvent('mousemove', tapX, tapY, 0);
-
-                                // Wait 1 frame for hover to register then click
                                 requestAnimationFrame(() => {
+                                    // Left click = nhấn nút menu (Done, Back to Game...) + tương tác
                                     dispatchMouseEvent('mousedown', tapX, tapY, 0);
                                     dispatchMouseEvent('mouseup', tapX, tapY, 0);
                                     dispatchMouseEvent('click', tapX, tapY, 0);
                                 });
                             }
                         }
+
                         lookTouchPos.current = null;
                         lookStartPos.current = null;
                     }}
                     onPointerMove={(e) => {
                         if (lookTouchPos.current) {
-                            const sensitivity = 2.2; // Tăng từ 1.8 lên 2.2 để mượt hơn
+                            // Nếu di chuyển nhiều → hủy hold timer (đang xoay camera)
+                            if (lookStartPos.current && !isHoldingRef.current) {
+                                const movedX = Math.abs(e.clientX - lookStartPos.current.x);
+                                const movedY = Math.abs(e.clientY - lookStartPos.current.y);
+                                if ((movedX > 8 || movedY > 8) && holdTimerRef.current) {
+                                    clearTimeout(holdTimerRef.current);
+                                    holdTimerRef.current = null;
+                                }
+                            }
+
+                            // === VUỐT = XOAY CAMERA ===
+                            const sensitivity = 2.2;
                             const dx = (e.clientX - lookTouchPos.current.x) * sensitivity;
                             const dy = (e.clientY - lookTouchPos.current.y) * sensitivity;
-
                             dispatchMovementEvent(dx, dy);
                             lookTouchPos.current = { x: e.clientX, y: e.clientY };
                         }
                     }}
+                />
+            )}
+
+            {/* Hiệu ứng đỏ khi đang giữ để đập block */}
+            {holdActive && (
+                <div className="absolute inset-0 pointer-events-none z-30"
+                    style={{ border: '3px solid rgba(255,50,50,0.5)', boxShadow: 'inset 0 0 40px rgba(255,0,0,0.2)' }}
                 />
             )}
 
