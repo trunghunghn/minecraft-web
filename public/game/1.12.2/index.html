@@ -76,6 +76,42 @@
         };
     </script>
 
+    <script>
+        // === BYPASS MOBILE DETECTION ===
+        // Giả mạo userAgent thành Desktop để game bỏ qua màn hình "Mobile Browser Detected"
+        try {
+            Object.defineProperty(navigator, 'userAgent', {
+                get: function() {
+                    return 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36';
+                },
+                configurable: true
+            });
+            // Cũng override maxTouchPoints để game không nhận ra thiết bị cảm ứng
+            Object.defineProperty(navigator, 'maxTouchPoints', {
+                get: function() { return 0; },
+                configurable: true
+            });
+        } catch(e) { console.warn('Cannot spoof userAgent:', e); }
+
+        // Dự phòng: Nếu màn hình mobile vẫn hiện, tự động click nút "Launch EaglercraftX"
+        var _mobileBypassInterval = setInterval(function() {
+            // Tìm tất cả các link/button có text "Launch EaglercraftX" hoặc "launch"
+            var allLinks = document.querySelectorAll('a, button, input[type="button"]');
+            for (var i = 0; i < allLinks.length; i++) {
+                var el = allLinks[i];
+                var txt = (el.textContent || el.value || '').toLowerCase();
+                if (txt.indexOf('launch') !== -1 || txt.indexOf('eaglercraftx') !== -1) {
+                    console.log('[Mobile Fix] Auto-clicking launch button:', el);
+                    el.click();
+                    clearInterval(_mobileBypassInterval);
+                    return;
+                }
+            }
+        }, 500);
+        // Dừng tìm sau 15 giây (tránh chạy mãi)
+        setTimeout(function() { clearInterval(_mobileBypassInterval); }, 15000);
+    </script>
+
     <!-- Tải Core Game Mới Nhất -->
     <script src="classes.js"></script>
 

@@ -38,9 +38,14 @@ export async function signUp(formData: FormData) {
         });
         return { success: true };
     } catch (error: unknown) {
+        console.error("signUp error:", error);
         if (error && typeof error === 'object' && 'code' in error && error.code === 'P2002') {
             return { error: "Tên nhân vật này đã được đăng ký rồi!" };
         }
-        return { error: "Có lỗi xảy ra khi tạo tài khoản" };
+        if (error && typeof error === 'object' && 'code' in error && error.code === 'P2003') {
+            return { error: "Lỗi cơ sở dữ liệu: Hãy chạy 'npx prisma db push' trước" };
+        }
+        const msg = error instanceof Error ? error.message : String(error);
+        return { error: `Lỗi: ${msg}` };
     }
 }
