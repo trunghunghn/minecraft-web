@@ -77,6 +77,11 @@
     </script>
 
     <script>
+        // === PHÁT HIỆN THIẾT BỊ TRƯỚC KHI SPOOF ===
+        // Phải lưu trước khi thay đổi userAgent
+        var _isMobileDevice = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)
+            || (navigator.maxTouchPoints > 0 && !/Win/i.test(navigator.platform));
+
         // === BYPASS MOBILE DETECTION ===
         // Giả mạo userAgent thành Desktop để game bỏ qua màn hình "Mobile Browser Detected"
         try {
@@ -117,44 +122,65 @@
 
     <script>
         var _virtualPointerLock = false;
-        try {
-            var _desc = Object.getOwnPropertyDescriptor(Document.prototype, 'pointerLockElement') || Object.getOwnPropertyDescriptor(document, 'pointerLockElement');
-            var _getPointerLock = _desc ? _desc.get : function() { return null; };
-            Object.defineProperty(document, 'pointerLockElement', {
-                get: function() {
-                    if (_virtualPointerLock) return document.getElementById('game-container').querySelector('canvas');
-                    return _getPointerLock.call(document);
-                }
-            });
-        } catch (e) { console.warn("Cannot override pointerLockElement", e); }
 
-        // === AUTO-APPROVE POINTER LOCK TRÊN MOBILE ===
-        // Khi game gọi requestPointerLock() → ta tự approve và báo parent "đang trong game"
-        try {
-            HTMLElement.prototype.requestPointerLock = function() {
-                _virtualPointerLock = true;
-                // Báo parent: đang trong game (first-person mode)
-                try { window.parent.postMessage({ type: 'game-state', inGame: true }, '*'); } catch(e) {}
-                // Fire pointerlockchange để game biết đã thành công
-                setTimeout(function() {
-                    try { document.dispatchEvent(new Event('pointerlockchange')); } catch(e) {}
-                    try { document.dispatchEvent(new Event('mozpointerlockchange')); } catch(e) {}
-                }, 0);
-            };
-        } catch(e) { console.warn('Cannot override requestPointerLock', e); }
+        if (_isMobileDevice) {
+            // === CHỈ DÙNG VIRTUAL POINTER LOCK TRÊN MOBILE ===
+            // Desktop dùng real pointer lock bình thường (ẩn con trỏ, capture mouse)
+            try {
+                var _desc = Object.getOwnPropertyDescriptor(Document.prototype, 'pointerLockElement') || Object.getOwnPropertyDescriptor(document, 'pointerLockElement');
+                var _getPointerLock = _desc ? _desc.get : function() { return null; };
+                Object.defineProperty(document, 'pointerLockElement', {
+                    get: function() {
+                        if (_virtualPointerLock) return document.getElementById('game-container').querySelector('canvas');
+                        return _getPointerLock.call(document);
+                    }
+                });
+            } catch (e) { console.warn("Cannot override pointerLockElement", e); }
 
-        // Khi game gọi exitPointerLock() → ta báo parent "đang ở menu"
-        try {
-            document.exitPointerLock = function() {
-                _virtualPointerLock = false;
-                // Báo parent: đang ở menu (ESC, settings...)
-                try { window.parent.postMessage({ type: 'game-state', inGame: false }, '*'); } catch(e) {}
-                setTimeout(function() {
-                    try { document.dispatchEvent(new Event('pointerlockchange')); } catch(e) {}
-                    try { document.dispatchEvent(new Event('mozpointerlockchange')); } catch(e) {}
-                }, 0);
-            };
-        } catch(e) { console.warn('Cannot override exitPointerLock', e); }
+            // Khi game gọi requestPointerLock() → ta tự approve và báo parent "đang trong game"
+            try {
+                HTMLElement.prototype.requestPointerLock = function() {
+                    _virtualPointerLock = true;
+                    try { window.parent.postMessage({ type: 'game-state', inGame: true }, '*'); } catch(e) {}
+                    setTimeout(function() {
+                        try { document.dispatchEvent(new Event('pointerlockchange')); } catch(e) {}
+                        try { document.dispatchEvent(new Event('mozpointerlockchange')); } catch(e) {}
+                    }, 0);
+                };
+            } catch(e) { console.warn('Cannot override requestPointerLock', e); }
+
+            // Khi game gọi exitPointerLock() → ta báo parent "đang ở menu"
+            try {
+                document.exitPointerLock = function() {
+                    _virtualPointerLock = false;
+                    try { window.parent.postMessage({ type: 'game-state', inGame: false }, '*'); } catch(e) {}
+                    setTimeout(function() {
+                        try { document.dispatchEvent(new Event('pointerlockchange')); } catch(e) {}
+                        try { document.dispatchEvent(new Event('mozpointerlockchange')); } catch(e) {}
+                    }, 0);
+                };
+            } catch(e) { console.warn('Cannot override exitPointerLock', e); }
+
+        } else {
+            // === DESKTOP: Dùng real pointer lock, nhưng vẫn báo parent game state ===
+            // Intercept để biết lúc nào vào/ra game (dùng cho MobileControls nếu cần)
+            try {
+                var _origRPL = HTMLElement.prototype.requestPointerLock;
+                HTMLElement.prototype.requestPointerLock = function() {
+                    // Gọi real pointer lock (ẩn cursor, capture mouse)
+                    _origRPL.call(this);
+                    try { window.parent.postMessage({ type: 'game-state', inGame: true }, '*'); } catch(e) {}
+                };
+            } catch(e) {}
+
+            try {
+                var _origEPL = document.exitPointerLock ? document.exitPointerLock.bind(document) : null;
+                document.exitPointerLock = function() {
+                    if (_origEPL) _origEPL();
+                    try { window.parent.postMessage({ type: 'game-state', inGame: false }, '*'); } catch(e) {}
+                };
+            } catch(e) {}
+        }
 
         window.addEventListener("load", function() {
             document.getElementById('loading-status').textContent = 'Đang khởi tạo Engine WebGL...';
