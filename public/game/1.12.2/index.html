@@ -225,25 +225,15 @@
             if (!data || !data.type) return;
             if (data.type === 'key-down') {
                 var kOpts = { key: data.key, code: data.code || ('Digit' + data.key), keyCode: data.keyCode || 0, which: data.keyCode || 0, bubbles: true, cancelable: true };
+                // Chỉ dispatch 1 lần lên window — event sẽ bubble tự động
                 window.dispatchEvent(new KeyboardEvent('keydown', kOpts));
-                document.dispatchEvent(new KeyboardEvent('keydown', kOpts));
-                // Cũng dispatch lên canvas để chắc chắn Eaglercraft nhận được
-                var kCanvas = document.getElementById('game-container') && document.getElementById('game-container').querySelector('canvas');
-                if (kCanvas) kCanvas.dispatchEvent(new KeyboardEvent('keydown', kOpts));
             } else if (data.type === 'key-press') {
-                // keypress cần có charCode để Eaglercraft chat nhận được ký tự
                 var kpOpts = { key: data.key, code: data.code || '', keyCode: data.keyCode || 0, charCode: data.charCode || data.keyCode || 0, which: data.charCode || data.keyCode || 0, bubbles: true, cancelable: true };
                 window.dispatchEvent(new KeyboardEvent('keypress', kpOpts));
-                document.dispatchEvent(new KeyboardEvent('keypress', kpOpts));
-                var kpCanvas = document.getElementById('game-container') && document.getElementById('game-container').querySelector('canvas');
-                if (kpCanvas) kpCanvas.dispatchEvent(new KeyboardEvent('keypress', kpOpts));
-
             } else if (data.type === 'key-up') {
                 var kuOpts = { key: data.key, code: data.code || ('Digit' + data.key), keyCode: data.keyCode || 0, which: data.keyCode || 0, bubbles: true, cancelable: true };
                 window.dispatchEvent(new KeyboardEvent('keyup', kuOpts));
-                document.dispatchEvent(new KeyboardEvent('keyup', kuOpts));
-                var kuCanvas = document.getElementById('game-container') && document.getElementById('game-container').querySelector('canvas');
-                if (kuCanvas) kuCanvas.dispatchEvent(new KeyboardEvent('keyup', kuOpts));
+
             } else if (data.type === 'mousedown' || data.type === 'mouseup' || data.type === 'mousemove' || data.type === 'click') {
                 var canvas = document.getElementById('game-container').querySelector('canvas') || document.getElementById('game-container');
                 if (canvas) {
