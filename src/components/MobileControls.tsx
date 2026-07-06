@@ -65,7 +65,8 @@ export default function MobileControls({ onKeyDown, onKeyUp, onOpenSettings, top
     const [isMouseMode, setIsMouseMode] = useState(false);
     const [debugDot, setDebugDot] = useState<{ x: number; y: number } | null>(null);
     const [holdActive, setHoldActive] = useState(false);
-    const [kbActive, setKbActive] = useState(false); // Bàn phím ảo đang mở
+    const [kbActive, setKbActive] = useState(false);
+    const [selectedSlot, setSelectedSlot] = useState(1); // Slot hotbar đang chọn (1-9)
     const mousePos = useRef({ x: 100, y: 100 });
     const holdTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
     const isHoldingRef = useRef(false);
@@ -420,8 +421,52 @@ export default function MobileControls({ onKeyDown, onKeyUp, onOpenSettings, top
                 style={{ bottom: `calc(${bottomOffset.includes('[') ? bottomOffset.split('[')[1].split(']')[0] : '8px'} + 100px)` }}
                 mousePos={mousePos} dispatchMouseEvent={dispatchMouseEvent} handlePress={handlePress} handleRelease={handleRelease}
             />
+            {/* ===== HOTBAR SELECTOR ===== */}
+            {/* Nằm ở đáy màn hình, giữa grid và nút JUMP */}
+            <div
+                className="absolute z-20 pointer-events-none"
+                style={{
+                    bottom: 0,
+                    left: 196,   // sau 3x3 grid (186 + 8 + 2)
+                    right: 90,   // trước nút JUMP (60 + 20 + 10)
+                    height: 56,
+                    display: 'flex',
+                    alignItems: 'stretch',
+                    gap: 2,
+                    padding: '4px 0',
+                }}
+            >
+                {[1,2,3,4,5,6,7,8,9].map((slot) => (
+                    <button
+                        key={slot}
+                        className="flex-1 h-full flex items-center justify-center text-white font-bold text-[10px] pointer-events-auto rounded-sm select-none"
+                        style={{
+                            background: selectedSlot === slot
+                                ? 'rgba(255,255,255,0.35)'
+                                : 'rgba(0,0,0,0.15)',
+                            border: selectedSlot === slot
+                                ? '2px solid rgba(255,255,255,0.9)'
+                                : '1px solid rgba(255,255,255,0.2)',
+                            boxShadow: selectedSlot === slot
+                                ? '0 0 8px rgba(255,255,255,0.4)'
+                                : 'none',
+                            transition: 'all 0.1s',
+                        }}
+                        onPointerDown={(e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            setSelectedSlot(slot);
+                            // Gửi phím số tương ứng (1-9) vào game
+                            handlePress(String(slot));
+                            setTimeout(() => handleRelease(String(slot)), 80);
+                        }}
+                    >
+                        <span style={{ opacity: selectedSlot === slot ? 1 : 0.5 }}>{slot}</span>
+                    </button>
+                ))}
+            </div>
 
-            {/* Input ẩn để mở bàn phím ảo trên điện thoại */}
+
             <input
                 ref={hiddenInputRef}
                 type="text"
