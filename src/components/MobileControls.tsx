@@ -456,9 +456,12 @@ export default function MobileControls({ onKeyDown, onKeyUp, onOpenSettings, top
                             e.preventDefault();
                             e.stopPropagation();
                             setSelectedSlot(slot);
-                            // Gửi phím số tương ứng (1-9) vào game
-                            handlePress(String(slot));
-                            setTimeout(() => handleRelease(String(slot)), 80);
+                            // Gửi đúng keyCode: phím '1'=49, '2'=50, ..., '9'=57
+                            const keyCode = 48 + slot;
+                            sendToBridge({ type: 'key-down', key: String(slot), code: `Digit${slot}`, keyCode });
+                            setTimeout(() => {
+                                sendToBridge({ type: 'key-up', key: String(slot), code: `Digit${slot}`, keyCode });
+                            }, 80);
                         }}
                     >
                         <span style={{ opacity: selectedSlot === slot ? 1 : 0.5 }}>{slot}</span>

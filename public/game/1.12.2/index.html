@@ -224,9 +224,18 @@
             var data = event.data;
             if (!data || !data.type) return;
             if (data.type === 'key-down') {
-                document.dispatchEvent(new KeyboardEvent('keydown', { key: data.key, code: data.code, keyCode: data.keyCode, which: data.keyCode, bubbles: true }));
+                var kOpts = { key: data.key, code: data.code || ('Digit' + data.key), keyCode: data.keyCode || 0, which: data.keyCode || 0, bubbles: true, cancelable: true };
+                window.dispatchEvent(new KeyboardEvent('keydown', kOpts));
+                document.dispatchEvent(new KeyboardEvent('keydown', kOpts));
+                // Cũng dispatch lên canvas để chắc chắn Eaglercraft nhận được
+                var kCanvas = document.getElementById('game-container') && document.getElementById('game-container').querySelector('canvas');
+                if (kCanvas) kCanvas.dispatchEvent(new KeyboardEvent('keydown', kOpts));
             } else if (data.type === 'key-up') {
-                document.dispatchEvent(new KeyboardEvent('keyup', { key: data.key, code: data.code, keyCode: data.keyCode, which: data.keyCode, bubbles: true }));
+                var kuOpts = { key: data.key, code: data.code || ('Digit' + data.key), keyCode: data.keyCode || 0, which: data.keyCode || 0, bubbles: true, cancelable: true };
+                window.dispatchEvent(new KeyboardEvent('keyup', kuOpts));
+                document.dispatchEvent(new KeyboardEvent('keyup', kuOpts));
+                var kuCanvas = document.getElementById('game-container') && document.getElementById('game-container').querySelector('canvas');
+                if (kuCanvas) kuCanvas.dispatchEvent(new KeyboardEvent('keyup', kuOpts));
             } else if (data.type === 'mousedown' || data.type === 'mouseup' || data.type === 'mousemove' || data.type === 'click') {
                 var canvas = document.getElementById('game-container').querySelector('canvas') || document.getElementById('game-container');
                 if (canvas) {
