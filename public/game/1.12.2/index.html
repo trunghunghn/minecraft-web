@@ -230,6 +230,14 @@
                 // Cũng dispatch lên canvas để chắc chắn Eaglercraft nhận được
                 var kCanvas = document.getElementById('game-container') && document.getElementById('game-container').querySelector('canvas');
                 if (kCanvas) kCanvas.dispatchEvent(new KeyboardEvent('keydown', kOpts));
+            } else if (data.type === 'key-press') {
+                // keypress cần có charCode để Eaglercraft chat nhận được ký tự
+                var kpOpts = { key: data.key, code: data.code || '', keyCode: data.keyCode || 0, charCode: data.charCode || data.keyCode || 0, which: data.charCode || data.keyCode || 0, bubbles: true, cancelable: true };
+                window.dispatchEvent(new KeyboardEvent('keypress', kpOpts));
+                document.dispatchEvent(new KeyboardEvent('keypress', kpOpts));
+                var kpCanvas = document.getElementById('game-container') && document.getElementById('game-container').querySelector('canvas');
+                if (kpCanvas) kpCanvas.dispatchEvent(new KeyboardEvent('keypress', kpOpts));
+
             } else if (data.type === 'key-up') {
                 var kuOpts = { key: data.key, code: data.code || ('Digit' + data.key), keyCode: data.keyCode || 0, which: data.keyCode || 0, bubbles: true, cancelable: true };
                 window.dispatchEvent(new KeyboardEvent('keyup', kuOpts));

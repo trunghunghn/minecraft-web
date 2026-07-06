@@ -486,19 +486,48 @@ export default function MobileControls({ onKeyDown, onKeyUp, onOpenSettings, top
                 onBlur={() => setKbActive(false)}
                 onKeyDown={(e) => {
                     e.stopPropagation();
-                    // Gửi key event vào game
                     const keyCode = e.keyCode || e.which || 0;
-                    sendToBridge({ type: 'key-down', key: e.key, code: e.code, keyCode });
-                    onKeyDown?.(e.key);
+
+                    // Bàn phím ảo mobile gửi keyCode=229 (IME) cho ký tự thường
+                    // → Bỏ qua, sẽ xử lý trong onChange
+                    if (keyCode === 229) return;
+
+                    // Phím đặc biệt: Backspace, Enter, Arrow, Escape...
+                    if (e.key !== 'Unidentified') {
+                        sendToBridge({ type: 'key-down', key: e.key, code: e.code, keyCode });
+                        // Backspace và Enter cũng cần keypress
+                        if (e.key === 'Backspace' || e.key === 'Enter') {
+                            sendToBridge({ type: 'key-press', key: e.key, code: e.code, keyCode, charCode: keyCode });
+                        }
+                        onKeyDown?.(e.key);
+                    }
                 }}
                 onKeyUp={(e) => {
                     e.stopPropagation();
                     const keyCode = e.keyCode || e.which || 0;
-                    sendToBridge({ type: 'key-up', key: e.key, code: e.code, keyCode });
-                    onKeyUp?.(e.key);
+                    if (keyCode === 229) return;
+                    if (e.key !== 'Unidentified') {
+                        sendToBridge({ type: 'key-up', key: e.key, code: e.code, keyCode });
+                        onKeyUp?.(e.key);
+                    }
                 }}
                 onChange={(e) => {
-                    // Xoá text sau khi gửi để luôn nhận ký tự mới
+                    const val = e.target.value;
+                    if (!val) return;
+
+                    // Xử lý từng ký tự gõ vào (cách duy nhất lấy được ký tự thật từ bàn phím ảo mobile)
+                    for (const char of val) {
+                        const charCode = char.charCodeAt(0);
+                        const keyCode = charCode;
+                        const code = char.match(/[a-zA-Z]/) ? `Key${char.toUpperCase()}` : 'Unidentified';
+
+                        // Gửi đủ chuỗi: keydown → keypress → keyup
+                        sendToBridge({ type: 'key-down',  key: char, code, keyCode, charCode });
+                        sendToBridge({ type: 'key-press', key: char, code, keyCode, charCode });
+                        sendToBridge({ type: 'key-up',    key: char, code, keyCode, charCode });
+                    }
+
+                    // Xoá để luôn nhận được ký tự mới
                     e.target.value = '';
                 }}
             />
